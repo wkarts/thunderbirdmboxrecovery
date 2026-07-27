@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [win-x86, win-x64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore ThunderbirdMboxRecovery.sln -r ${{ matrix.rid }}
+
+      - name: Publish
+        shell: pwsh
+        run: |
+          $rid = "${{ matrix.rid }}"
+          $out = "release/$rid"
+          dotnet publish src/ThunderbirdMboxRecovery/ThunderbirdMboxRecovery.csproj `
+            -c Release `
+            -r $rid `
+            --self-contained true `
+            --no-restore `
+            -p:PublishSingleFile=true `
+            -p:PublishTrimmed=false `
+            -o $out
+          Move-Item "$out/ThunderbirdMboxRecovery.exe" "$out/ThunderbirdMboxRecovery-$rid.exe"
+          Get-FileHash "$out/ThunderbirdMboxRecovery-$rid.exe" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower()) *ThunderbirdMboxRecovery-$rid.exe" } |
+            Set-Content "$out/SHA256-$rid.txt" -Encoding ascii
+          Compress-Archive -Path "$out/ThunderbirdMboxRecovery-$rid.exe", "$out/SHA256-$rid.txt", README.md, docs/OPERACAO_TECNICA.md `
+            -DestinationPath "release/ThunderbirdMboxRecovery-$rid.zip" -Force
+
+      - name: Upload build result
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.rid }}
+          path: release/
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Build consolidated checksums
+        shell: bash
+        run: |
+          find dist -type f -name '*.exe' -print0 | sort -z | xargs -0 sha256sum > dist/SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "Thunderbird MBOX Recovery ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            dist/**/*.exe dist/**/*.zip dist/SHA256SUMS.txt

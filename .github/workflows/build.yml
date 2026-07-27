@@ -1,0 +1,59 @@
+name: Build portable binaries
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [win-x86, win-x64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore ThunderbirdMboxRecovery.sln -r ${{ matrix.rid }}
+
+      - name: Publish single-file self-contained
+        shell: pwsh
+        run: |
+          $rid = "${{ matrix.rid }}"
+          $out = "artifacts/$rid"
+          dotnet publish src/ThunderbirdMboxRecovery/ThunderbirdMboxRecovery.csproj `
+            -c Release `
+            -r $rid `
+            --self-contained true `
+            --no-restore `
+            -p:PublishSingleFile=true `
+            -p:PublishTrimmed=false `
+            -o $out
+          Move-Item "$out/ThunderbirdMboxRecovery.exe" "$out/ThunderbirdMboxRecovery-$rid.exe"
+          Get-FileHash "$out/ThunderbirdMboxRecovery-$rid.exe" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower()) *ThunderbirdMboxRecovery-$rid.exe" } |
+            Set-Content "$out/SHA256-$rid.txt" -Encoding ascii
+          Compress-Archive -Path "$out/ThunderbirdMboxRecovery-$rid.exe", "$out/SHA256-$rid.txt", README.md, docs/OPERACAO_TECNICA.md `
+            -DestinationPath "artifacts/ThunderbirdMboxRecovery-$rid.zip" -Force
+
+      - name: Upload portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThunderbirdMboxRecovery-${{ matrix.rid }}
+          path: |
+            artifacts/${{ matrix.rid }}/ThunderbirdMboxRecovery-${{ matrix.rid }}.exe
+            artifacts/${{ matrix.rid }}/SHA256-${{ matrix.rid }}.txt
+            artifacts/ThunderbirdMboxRecovery-${{ matrix.rid }}.zip
+          if-no-files-found: error

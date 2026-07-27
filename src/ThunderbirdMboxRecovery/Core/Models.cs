@@ -1,0 +1,110 @@
+using System.Text.Json.Serialization;
+
+namespace ThunderbirdMboxRecovery.Core;
+
+public sealed record ArchiveEntryInfo(string Key, long Size)
+{
+    public string DisplayText => $"{Key}  ({SizeFormatter.Format(Size)})";
+}
+
+public sealed class RecoveryOptions
+{
+    public required string SourcePath { get; init; }
+    public string? ArchiveEntryKey { get; init; }
+    public string? ArchivePassword { get; init; }
+    public required string OutputDirectory { get; init; }
+    public required long TargetChunkBytes { get; init; }
+    public required long ExpectedInputBytes { get; init; }
+}
+
+public sealed record RecoveryProgress(
+    string Stage,
+    long ProcessedBytes,
+    long TotalBytes,
+    long Messages,
+    int CompletedParts,
+    string? CurrentFile,
+    string? Detail = null);
+
+public sealed class RecoveryResult
+{
+    public required string OutputDirectory { get; init; }
+    public required long InputBytes { get; init; }
+    public required string InputSha256 { get; init; }
+    public required long PrefixBytes { get; init; }
+    public required long TotalMessages { get; init; }
+    public required IReadOnlyList<ChunkManifest> Parts { get; init; }
+    public required string ManifestPath { get; init; }
+    public required string LogPath { get; init; }
+}
+
+public sealed class RecoveryManifest
+{
+    [JsonPropertyName("aplicacao")]
+    public string Application { get; init; } = "Thunderbird MBOX Recovery";
+
+    [JsonPropertyName("versao")]
+    public string Version { get; init; } = "1.0.0";
+
+    [JsonPropertyName("criado_em")]
+    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.Now;
+
+    [JsonPropertyName("origem")]
+    public required string Source { get; init; }
+
+    [JsonPropertyName("entrada_arquivo_compactado")]
+    public string? ArchiveEntry { get; init; }
+
+    [JsonPropertyName("tamanho_entrada_bytes")]
+    public required long InputSizeBytes { get; init; }
+
+    [JsonPropertyName("sha256_entrada_descompactada")]
+    public required string InputSha256 { get; init; }
+
+    [JsonPropertyName("tamanho_alvo_parte_bytes")]
+    public required long TargetChunkBytes { get; init; }
+
+    [JsonPropertyName("prefixo_nao_reconhecido_bytes")]
+    public required long PrefixBytes { get; init; }
+
+    [JsonPropertyName("mensagens_estimadas")]
+    public required long EstimatedMessages { get; init; }
+
+    [JsonPropertyName("total_partes")]
+    public required int TotalParts { get; init; }
+
+    [JsonPropertyName("partes")]
+    public required IReadOnlyList<ChunkManifest> Parts { get; init; }
+}
+
+public sealed class ChunkManifest
+{
+    [JsonPropertyName("arquivo")]
+    public required string FileName { get; init; }
+
+    [JsonPropertyName("tamanho_bytes")]
+    public required long SizeBytes { get; init; }
+
+    [JsonPropertyName("mensagens_estimadas")]
+    public required long EstimatedMessages { get; init; }
+
+    [JsonPropertyName("sha256")]
+    public required string Sha256 { get; init; }
+}
+
+public static class SizeFormatter
+{
+    private static readonly string[] Units = ["B", "KiB", "MiB", "GiB", "TiB"];
+
+    public static string Format(long value)
+    {
+        double size = value;
+        var unit = 0;
+        while (size >= 1024 && unit < Units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+        return $"{size:N2} {Units[unit]}";
+    }
+}
