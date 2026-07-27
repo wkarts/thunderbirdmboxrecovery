@@ -37,3 +37,18 @@ Abra o Thunderbird e aguarde a geração dos respectivos arquivos `.msf`.
 ## Limites
 
 A ferramenta recupera mensagens cujos separadores MBOX ainda podem ser reconhecidos. Ela não recria bytes que tenham sido sobrescritos, truncados ou removidos antes da criação do backup.
+
+## Tipo de reparo realizado
+
+A aplicação reconstrói a estrutura utilizável da caixa MBOX em arquivos menores. Ela procura os delimitadores de início das mensagens que ainda estão presentes e copia o conteúdo correspondente para novas caixas, sem modificar a origem.
+
+Esse processo é apropriado para Inbox excessivamente grande, índice `.msf` inconsistente e corrupção localizada. Não é possível reconstruir dados que já tenham sido fisicamente sobrescritos, truncados ou removidos do backup.
+
+## Distribuição dos binários
+
+Os workflows não utilizam mais `actions/upload-artifact`. Os executáveis e pacotes são enviados diretamente para GitHub Releases:
+
+- `continuous`: build automático após atualização da branch principal;
+- `v*`: release estável criada por tag.
+
+Isso evita falhas causadas pela cota compartilhada de armazenamento de artifacts do GitHub Actions.
