@@ -14,6 +14,8 @@ public sealed class RecoveryOptions
     public string? ArchivePassword { get; init; }
     public required string OutputDirectory { get; init; }
     public required string MailboxName { get; init; }
+    public required bool SplitOutput { get; init; }
+    public required bool CreateMsfPlaceholder { get; init; }
     public required long TargetChunkBytes { get; init; }
     public required long ExpectedInputBytes { get; init; }
 }
@@ -46,7 +48,7 @@ public sealed class RecoveryManifest
     public string Application { get; init; } = "Thunderbird MBOX Recovery";
 
     [JsonPropertyName("versao")]
-    public string Version { get; init; } = "1.1.0";
+    public string Version { get; init; } = "1.2.0";
 
     [JsonPropertyName("criado_em")]
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.Now;
@@ -66,8 +68,14 @@ public sealed class RecoveryManifest
     [JsonPropertyName("sha256_entrada_descompactada")]
     public required string InputSha256 { get; init; }
 
+    [JsonPropertyName("saida_fracionada")]
+    public required bool SplitOutput { get; init; }
+
+    [JsonPropertyName("criou_msf_reconstrucao")]
+    public required bool CreatedMsfPlaceholders { get; init; }
+
     [JsonPropertyName("tamanho_alvo_parte_bytes")]
-    public required long TargetChunkBytes { get; init; }
+    public long? TargetChunkBytes { get; init; }
 
     [JsonPropertyName("prefixo_nao_reconhecido_bytes")]
     public required long PrefixBytes { get; init; }
@@ -95,6 +103,9 @@ public sealed class ChunkManifest
 
     [JsonPropertyName("sha256")]
     public required string Sha256 { get; init; }
+
+    [JsonPropertyName("arquivo_indice_msf")]
+    public string? IndexFileName { get; init; }
 }
 
 public static class SizeFormatter
