@@ -13,9 +13,9 @@ Para uma Inbox descompactada de 28 GiB, reserve pelo menos 31 GiB livres no dest
 Cada execução cria uma pasta exclusiva:
 
 ```text
-Recuperacao_Inbox_20260727_153000\
-├── Inbox_Recuperada_001
-├── Inbox_Recuperada_002
+Recuperacao_<NomeDaCaixa>_20260727_153000\
+├── <NomeDaCaixa>_Recuperada_001
+├── <NomeDaCaixa>_Recuperada_002
 ├── ...
 ├── manifesto_recuperacao.json
 ├── recuperacao.log

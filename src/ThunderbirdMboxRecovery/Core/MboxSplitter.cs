@@ -25,6 +25,7 @@ public sealed partial class MboxSplitter
         logger.Info($"Origem: {options.SourcePath}");
         if (!string.IsNullOrWhiteSpace(options.ArchiveEntryKey))
             logger.Info($"Entrada selecionada no arquivo compactado: {options.ArchiveEntryKey}");
+        logger.Info($"Caixa MBOX identificada como: {options.MailboxName}");
         logger.Info($"Destino: {options.OutputDirectory}");
         logger.Info($"Tamanho alvo por parte: {SizeFormatter.Format(options.TargetChunkBytes)}");
 
@@ -62,7 +63,7 @@ public sealed partial class MboxSplitter
                 ? options.ExpectedInputBytes
                 : handle?.Length ?? directStream?.Length ?? 0;
 
-            chunks = new ChunkWriter(options.OutputDirectory, options.TargetChunkBytes, logger);
+            chunks = new ChunkWriter(options.OutputDirectory, options.TargetChunkBytes, options.MailboxName, logger);
             prefixPartialPath = Path.Combine(options.OutputDirectory, "prefixo_nao_reconhecido.bin.partial");
             prefixFinalPath = Path.Combine(options.OutputDirectory, "prefixo_nao_reconhecido.bin");
 
@@ -237,6 +238,7 @@ public sealed partial class MboxSplitter
             {
                 Source = Path.GetFullPath(options.SourcePath),
                 ArchiveEntry = options.ArchiveEntryKey,
+                MailboxName = options.MailboxName,
                 InputSizeBytes = processed,
                 InputSha256 = inputHash,
                 TargetChunkBytes = options.TargetChunkBytes,
@@ -252,7 +254,7 @@ public sealed partial class MboxSplitter
                 WriteIndented = true
             }), new UTF8Encoding(false));
 
-            WriteImportInstructions(options.OutputDirectory, chunks.Parts.Count);
+            WriteImportInstructions(options.OutputDirectory, options.MailboxName, chunks.Parts.Count);
             logger.Info($"SHA-256 da entrada descompactada: {inputHash}");
             logger.Info($"Recuperação concluída: {chunks.Parts.Count} partes e {totalMessages:N0} mensagens estimadas.");
 
@@ -268,6 +270,7 @@ public sealed partial class MboxSplitter
             return new RecoveryResult
             {
                 OutputDirectory = options.OutputDirectory,
+                MailboxName = options.MailboxName,
                 InputBytes = processed,
                 InputSha256 = inputHash,
                 PrefixBytes = prefixBytes,
@@ -306,9 +309,10 @@ public sealed partial class MboxSplitter
         return SeparatorRegex().IsMatch(text);
     }
 
-    private static void WriteImportInstructions(string outputDirectory, int parts)
+    private static void WriteImportInstructions(string outputDirectory, string mailboxName, int parts)
     {
         var path = Path.Combine(outputDirectory, "COMO_IMPORTAR_NO_THUNDERBIRD.txt");
+        var safeMailboxName = MailboxNameResolver.FromSource(mailboxName);
         var text = $"""
 RECUPERAÇÃO CONCLUÍDA
 
@@ -321,8 +325,8 @@ IMPORTAÇÃO RECOMENDADA
 3. Localize a pasta do perfil e entre em:
    Mail\Local Folders\
 4. Copie para essa pasta os arquivos:
-   Inbox_Recuperada_001
-   Inbox_Recuperada_002
+   {safeMailboxName}_Recuperada_001
+   {safeMailboxName}_Recuperada_002
    ...
 5. Não copie arquivos com extensão .partial.
 6. Abra o Thunderbird e aguarde a criação dos índices .msf.
@@ -331,8 +335,8 @@ IMPORTAÇÃO RECOMENDADA
 SEGURANÇA
 
 - O arquivo de origem foi aberto somente para leitura.
-- Não compacte a Inbox original de 28 GB.
-- Preserve o backup .7z e o arquivo original até validar todas as partes.
+- Não compacte nem altere o arquivo MBOX original durante a recuperação.
+- Preserve o arquivo original e qualquer backup existente até validar todas as partes.
 - Consulte manifesto_recuperacao.json e recuperacao.log.
 """;
         File.WriteAllText(path, text, new UTF8Encoding(false));

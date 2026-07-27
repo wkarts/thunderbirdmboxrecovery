@@ -13,6 +13,7 @@ public sealed class RecoveryOptions
     public string? ArchiveEntryKey { get; init; }
     public string? ArchivePassword { get; init; }
     public required string OutputDirectory { get; init; }
+    public required string MailboxName { get; init; }
     public required long TargetChunkBytes { get; init; }
     public required long ExpectedInputBytes { get; init; }
 }
@@ -29,6 +30,7 @@ public sealed record RecoveryProgress(
 public sealed class RecoveryResult
 {
     public required string OutputDirectory { get; init; }
+    public required string MailboxName { get; init; }
     public required long InputBytes { get; init; }
     public required string InputSha256 { get; init; }
     public required long PrefixBytes { get; init; }
@@ -44,7 +46,7 @@ public sealed class RecoveryManifest
     public string Application { get; init; } = "Thunderbird MBOX Recovery";
 
     [JsonPropertyName("versao")]
-    public string Version { get; init; } = "1.0.0";
+    public string Version { get; init; } = "1.1.0";
 
     [JsonPropertyName("criado_em")]
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.Now;
@@ -54,6 +56,9 @@ public sealed class RecoveryManifest
 
     [JsonPropertyName("entrada_arquivo_compactado")]
     public string? ArchiveEntry { get; init; }
+
+    [JsonPropertyName("nome_caixa_origem")]
+    public required string MailboxName { get; init; }
 
     [JsonPropertyName("tamanho_entrada_bytes")]
     public required long InputSizeBytes { get; init; }
