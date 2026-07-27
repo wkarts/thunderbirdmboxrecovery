@@ -27,7 +27,12 @@ public sealed partial class MboxSplitter
             logger.Info($"Entrada selecionada no arquivo compactado: {options.ArchiveEntryKey}");
         logger.Info($"Caixa MBOX identificada como: {options.MailboxName}");
         logger.Info($"Destino: {options.OutputDirectory}");
-        logger.Info($"Tamanho alvo por parte: {SizeFormatter.Format(options.TargetChunkBytes)}");
+        logger.Info(options.SplitOutput
+            ? $"Modo de saída: fracionado em partes de aproximadamente {SizeFormatter.Format(options.TargetChunkBytes)}."
+            : "Modo de saída: arquivo único, sem fracionamento.");
+        logger.Info(options.CreateMsfPlaceholder
+            ? "Será criado um arquivo .msf vazio para reconstrução automática pelo Thunderbird."
+            : "A criação do arquivo .msf foi desativada pelo operador.");
 
         MboxReadHandle? handle = null;
         FileStream? directStream = null;
@@ -63,7 +68,13 @@ public sealed partial class MboxSplitter
                 ? options.ExpectedInputBytes
                 : handle?.Length ?? directStream?.Length ?? 0;
 
-            chunks = new ChunkWriter(options.OutputDirectory, options.TargetChunkBytes, options.MailboxName, logger);
+            chunks = new ChunkWriter(
+                options.OutputDirectory,
+                options.TargetChunkBytes,
+                options.MailboxName,
+                options.SplitOutput,
+                options.CreateMsfPlaceholder,
+                logger);
             prefixPartialPath = Path.Combine(options.OutputDirectory, "prefixo_nao_reconhecido.bin.partial");
             prefixFinalPath = Path.Combine(options.OutputDirectory, "prefixo_nao_reconhecido.bin");
 
@@ -241,7 +252,9 @@ public sealed partial class MboxSplitter
                 MailboxName = options.MailboxName,
                 InputSizeBytes = processed,
                 InputSha256 = inputHash,
-                TargetChunkBytes = options.TargetChunkBytes,
+                SplitOutput = options.SplitOutput,
+                CreatedMsfPlaceholders = options.CreateMsfPlaceholder,
+                TargetChunkBytes = options.SplitOutput ? options.TargetChunkBytes : null,
                 PrefixBytes = prefixBytes,
                 EstimatedMessages = totalMessages,
                 TotalParts = chunks.Parts.Count,
@@ -254,9 +267,14 @@ public sealed partial class MboxSplitter
                 WriteIndented = true
             }), new UTF8Encoding(false));
 
-            WriteImportInstructions(options.OutputDirectory, options.MailboxName, chunks.Parts.Count);
+            WriteImportInstructions(
+                options.OutputDirectory,
+                options.MailboxName,
+                chunks.Parts,
+                options.SplitOutput,
+                options.CreateMsfPlaceholder);
             logger.Info($"SHA-256 da entrada descompactada: {inputHash}");
-            logger.Info($"Recuperação concluída: {chunks.Parts.Count} partes e {totalMessages:N0} mensagens estimadas.");
+            logger.Info($"Recuperação concluída: {chunks.Parts.Count} arquivo(s) MBOX e {totalMessages:N0} mensagens estimadas.");
 
             progress?.Report(new RecoveryProgress(
                 "Concluído",
@@ -309,14 +327,45 @@ public sealed partial class MboxSplitter
         return SeparatorRegex().IsMatch(text);
     }
 
-    private static void WriteImportInstructions(string outputDirectory, string mailboxName, int parts)
+    private static void WriteImportInstructions(
+        string outputDirectory,
+        string mailboxName,
+        IReadOnlyList<ChunkManifest> outputs,
+        bool splitOutput,
+        bool createdMsfPlaceholders)
     {
         var path = Path.Combine(outputDirectory, "COMO_IMPORTAR_NO_THUNDERBIRD.txt");
         var safeMailboxName = MailboxNameResolver.FromSource(mailboxName);
+        var outputFiles = string.Join(Environment.NewLine, outputs.Select(item => $"   {item.FileName}"));
+        var msfFiles = string.Join(Environment.NewLine, outputs
+            .Where(item => !string.IsNullOrWhiteSpace(item.IndexFileName))
+            .Select(item => $"   {item.IndexFileName}"));
+
+        var modeDescription = splitOutput
+            ? $"Foram gerados {outputs.Count} arquivos MBOX fracionados."
+            : $"Foi gerado um único arquivo MBOX: {safeMailboxName}_Recuperada.";
+
+        var msfDescription = createdMsfPlaceholders
+            ? $"""
+Também foram criados arquivos .msf vazios de reconstrução:
+{msfFiles}
+
+Esses arquivos não contêm mensagens. O Thunderbird deve preenchê-los/reconstruí-los
+quando abrir os MBOX recuperados. Se uma caixa não aparecer corretamente, feche o
+Thunderbird, exclua somente o .msf correspondente e abra novamente.
+"""
+            : "Os arquivos .msf não foram criados. O Thunderbird deverá criá-los automaticamente.";
+
         var text = $"""
 RECUPERAÇÃO CONCLUÍDA
 
-Foram geradas {parts} partes MBOX sem extensão.
+{modeDescription}
+
+ARQUIVOS MBOX GERADOS
+
+{outputFiles}
+
+{msfDescription}
 
 IMPORTAÇÃO RECOMENDADA
 
@@ -324,21 +373,19 @@ IMPORTAÇÃO RECOMENDADA
 2. Abra o Thunderbird uma vez e feche-o completamente.
 3. Localize a pasta do perfil e entre em:
    Mail\Local Folders\
-4. Copie para essa pasta os arquivos:
-   {safeMailboxName}_Recuperada_001
-   {safeMailboxName}_Recuperada_002
-   ...
+4. Copie os arquivos MBOX listados acima e seus respectivos .msf para essa pasta.
 5. Não copie arquivos com extensão .partial.
-6. Abra o Thunderbird e aguarde a criação dos índices .msf.
+6. Abra o Thunderbird e aguarde a reconstrução dos índices .msf.
 7. Confira as mensagens antes de excluir qualquer backup.
 
 SEGURANÇA
 
 - O arquivo de origem foi aberto somente para leitura.
 - Não compacte nem altere o arquivo MBOX original durante a recuperação.
-- Preserve o arquivo original e qualquer backup existente até validar todas as partes.
+- Preserve o arquivo original e qualquer backup existente até validar a recuperação.
 - Consulte manifesto_recuperacao.json e recuperacao.log.
 """;
         File.WriteAllText(path, text, new UTF8Encoding(false));
     }
+
 }

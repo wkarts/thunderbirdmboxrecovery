@@ -6,6 +6,8 @@ internal sealed class ChunkWriter : IDisposable
 {
     private readonly string _outputDirectory;
     private readonly long _targetSize;
+    private readonly bool _splitOutput;
+    private readonly bool _createMsfPlaceholder;
     private readonly RecoveryLogger _logger;
     private readonly string _mailboxName;
     private readonly List<ChunkManifest> _parts = [];
@@ -23,11 +25,19 @@ internal sealed class ChunkWriter : IDisposable
     public long CurrentMessages => _messages;
     public string? CurrentFileName => _finalPath is null ? null : Path.GetFileName(_finalPath);
 
-    public ChunkWriter(string outputDirectory, long targetSize, string mailboxName, RecoveryLogger logger)
+    public ChunkWriter(
+        string outputDirectory,
+        long targetSize,
+        string mailboxName,
+        bool splitOutput,
+        bool createMsfPlaceholder,
+        RecoveryLogger logger)
     {
         _outputDirectory = outputDirectory;
         _targetSize = targetSize;
         _mailboxName = MailboxNameResolver.FromSource(mailboxName);
+        _splitOutput = splitOutput;
+        _createMsfPlaceholder = createMsfPlaceholder;
         _logger = logger;
     }
 
@@ -37,7 +47,7 @@ internal sealed class ChunkWriter : IDisposable
         {
             OpenNew();
         }
-        else if (_size >= _targetSize && _messages > 0)
+        else if (_splitOutput && _size >= _targetSize && _messages > 0)
         {
             FinalizeCurrent();
             OpenNew();
@@ -50,7 +60,7 @@ internal sealed class ChunkWriter : IDisposable
     public void Write(ReadOnlySpan<byte> data)
     {
         if (_stream is null || _hash is null)
-            throw new InvalidOperationException("Nenhuma parte de saída está aberta.");
+            throw new InvalidOperationException("Nenhum arquivo de saída está aberto.");
 
         _stream.Write(data);
         _hash.AppendData(data);
@@ -79,13 +89,16 @@ internal sealed class ChunkWriter : IDisposable
         _stream = null;
         _hash?.Dispose();
         _hash = null;
-        _logger.Warning($"Parte incompleta preservada: {Path.GetFileName(_partialPath)}");
+        _logger.Warning($"Arquivo incompleto preservado: {Path.GetFileName(_partialPath)}");
     }
 
     private void OpenNew()
     {
         _index++;
-        var baseName = $"{_mailboxName}_Recuperada_{_index:000}";
+        var baseName = _splitOutput
+            ? $"{_mailboxName}_Recuperada_{_index:000}"
+            : $"{_mailboxName}_Recuperada";
+
         _finalPath = Path.Combine(_outputDirectory, baseName);
         _partialPath = _finalPath + ".partial";
         _stream = new FileStream(
@@ -98,7 +111,7 @@ internal sealed class ChunkWriter : IDisposable
         _hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         _size = 0;
         _messages = 0;
-        _logger.Info($"Criando parte {baseName}.");
+        _logger.Info($"Criando arquivo MBOX {baseName}.");
     }
 
     private void FinalizeCurrent()
@@ -114,14 +127,24 @@ internal sealed class ChunkWriter : IDisposable
         _hash = null;
 
         File.Move(_partialPath, _finalPath, false);
+
+        string? indexFileName = null;
+        if (_createMsfPlaceholder)
+        {
+            var msfPath = MsfIndexService.CreateRebuildPlaceholder(_finalPath);
+            indexFileName = Path.GetFileName(msfPath);
+            _logger.Info($"Arquivo de reconstrução do índice criado: {indexFileName}. O Thunderbird preencherá o .msf ao abrir a caixa.");
+        }
+
         _parts.Add(new ChunkManifest
         {
             FileName = Path.GetFileName(_finalPath),
             SizeBytes = _size,
             EstimatedMessages = _messages,
-            Sha256 = hash
+            Sha256 = hash,
+            IndexFileName = indexFileName
         });
-        _logger.Info($"Parte concluída: {Path.GetFileName(_finalPath)} | {SizeFormatter.Format(_size)} | {_messages:N0} mensagens estimadas.");
+        _logger.Info($"Arquivo concluído: {Path.GetFileName(_finalPath)} | {SizeFormatter.Format(_size)} | {_messages:N0} mensagens estimadas.");
 
         _partialPath = null;
         _finalPath = null;

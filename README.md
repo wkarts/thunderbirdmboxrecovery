@@ -17,8 +17,10 @@ O programa é autossuficiente, não exige instalação do .NET, Python, Thunderb
 A ferramenta realiza uma **reconstrução estrutural do MBOX**:
 
 - encontra os separadores de mensagens ainda reconhecíveis;
-- copia as mensagens encontradas para novas caixas MBOX menores;
-- separa as partes somente no limite entre mensagens;
+- copia as mensagens encontradas para uma nova caixa MBOX recuperada;
+- gera por padrão um único MBOX recuperado, sem fracionamento;
+- permite opcionalmente fracionar a saída somente no limite entre mensagens;
+- cria o arquivo `.msf` correspondente como marcador para reconstrução automática pelo Thunderbird;
 - preserva conteúdo anterior à primeira mensagem reconhecida para análise;
 - não altera o arquivo original.
 
@@ -34,7 +36,9 @@ Isso normalmente recupera a visualização das mensagens quando o problema é ca
 - Processamento em fluxo, sem carregar a caixa inteira na memória.
 - Origem aberta somente para leitura.
 - Divisão apenas no início reconhecido de uma nova mensagem MBOX.
-- Partes com tamanho configurável, padrão de 1,50 GiB.
+- Saída única sem fracionamento por padrão.
+- Fracionamento opcional com tamanho configurável, padrão de 1,50 GiB.
+- Arquivo `.msf` correspondente criado por padrão para o Thunderbird reconstruir o índice.
 - SHA-256 da entrada descompactada e de cada parte.
 - `manifesto_recuperacao.json`.
 - `recuperacao.log`.
@@ -65,10 +69,10 @@ Arquivos auxiliares como `*.msf`, `global-messages-db.sqlite`, `prefs.js` e outr
 O nome da caixa é preservado na saída. Exemplos:
 
 ```text
-Sent            -> Sent_Recuperada_001
-Archives        -> Archives_Recuperada_001
-Clientes        -> Clientes_Recuperada_001
-caixa.mbox      -> caixa_Recuperada_001
+Sent            -> Sent_Recuperada
+Archives        -> Archives_Recuperada
+Clientes        -> Clientes_Recuperada
+caixa.mbox      -> caixa_Recuperada
 ```
 
 ## Operação no cliente
@@ -79,17 +83,18 @@ caixa.mbox      -> caixa_Recuperada_001
 4. Informe a senha do `.7z`, quando houver.
 5. Em backups compactados, clique em **Analisar backup** e selecione a caixa desejada.
 6. Selecione uma unidade com espaço livre suficiente.
-7. Mantenha o tamanho padrão de 1,50 GiB.
-8. Inicie a recuperação.
-9. Confira `manifesto_recuperacao.json`, `recuperacao.log` e as partes geradas.
-10. Importe as partes em um perfil separado do Thunderbird antes de alterar o perfil original.
+7. Mantenha a saída única, ou marque o fracionamento e defina o tamanho das partes.
+8. Mantenha marcada a criação do `.msf` para reconstrução do índice.
+9. Inicie a recuperação.
+10. Confira `manifesto_recuperacao.json`, `recuperacao.log` e os arquivos gerados.
+11. Importe o arquivo único ou as partes em um perfil separado do Thunderbird antes de alterar o perfil original.
 
 ## Segurança operacional
 
 - Nunca execute a recuperação sobre a única cópia disponível.
 - Não compacte nem altere o arquivo MBOX original durante a recuperação.
 - Não importe arquivos terminados em `.partial`.
-- Não apague o backup nem o arquivo MBOX original antes de conferir todas as partes.
+- Não apague o backup nem o arquivo MBOX original antes de conferir todos os arquivos recuperados.
 - A pasta de destino deve ter, no mínimo, o tamanho descompactado da caixa MBOX mais 10% de folga.
 
 ## Desenvolvimento
@@ -119,3 +124,10 @@ dotnet publish src/ThunderbirdMboxRecovery/ThunderbirdMboxRecovery.csproj -c Rel
 - `ci.yml`: valida Pull Requests sem publicar executáveis ou artefatos.
 - `build.yml`: gera `win-x86` e `win-x64` e atualiza diretamente a Release de pré-lançamento `continuous`, sem usar armazenamento de artifacts.
 - `release.yml`: gera as duas arquiteturas em um único job e publica diretamente a Release estável para tags `v*`, sem `upload-artifact`/`download-artifact`.
+
+
+## Saída única e `.msf`
+
+A versão 1.2.0 gera, por padrão, apenas um arquivo como `Inbox_Recuperada` ou `Sent_Recuperada`. O operador pode marcar o fracionamento quando desejar várias partes.
+
+O `.msf` criado ao lado de cada MBOX é intencionalmente vazio: ele é um marcador para que o Thunderbird reconstrua o banco de índice a partir das mensagens do MBOX. O conteúdo real dos emails permanece exclusivamente no arquivo MBOX sem extensão.
