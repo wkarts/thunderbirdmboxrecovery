@@ -1,6 +1,6 @@
 # Thunderbird MBOX Recovery
 
-Utilitário Windows portátil para recuperar caixas MBOX grandes do Mozilla Thunderbird, inclusive quando estão armazenadas dentro de backup `.7z`.
+Utilitário Windows portátil para recuperar caixas MBOX grandes do Mozilla Thunderbird, independentemente do nome da pasta, inclusive quando estão armazenadas dentro de backup `.7z`.
 
 ## Objetivo
 
@@ -27,7 +27,7 @@ Isso normalmente recupera a visualização das mensagens quando o problema é ca
 ## Recursos
 
 - Interface gráfica em português.
-- Leitura direta de `Inbox`/MBOX sem extensão.
+- Leitura direta de qualquer arquivo MBOX do Thunderbird, com ou sem extensão: `Inbox`, `Sent`, `Drafts`, `Archives`, `Trash`, `Templates`, `Junk`, pastas personalizadas e subpastas.
 - Leitura de `.7z`, `.zip`, `.rar`, `.tar`, `.gz`, `.bz2` e `.xz`.
 - Campo de senha para arquivos compactados protegidos.
 - Detecção e seleção da caixa existente dentro do backup.
@@ -42,13 +42,42 @@ Isso normalmente recupera a visualização das mensagens quando o problema é ca
 - Arquivos incompletos permanecem com extensão `.partial` e não devem ser importados.
 - Instruções de importação geradas automaticamente.
 
+## Arquivos aceitos diretamente
+
+O programa não depende do nome `Inbox`. Ele aceita qualquer arquivo de dados MBOX do Thunderbird, normalmente localizado em `Mail`, `ImapMail` ou `Mail\Local Folders`. A recuperação é executada sobre uma caixa por vez. Exemplos:
+
+```text
+Inbox
+Sent
+Drafts
+Archives
+Trash
+Templates
+Junk
+Clientes
+Financeiro
+2025
+caixa-exportada.mbox
+```
+
+Arquivos auxiliares como `*.msf`, `global-messages-db.sqlite`, `prefs.js` e outros metadados não armazenam o corpo completo das mensagens e não devem ser usados como origem.
+
+O nome da caixa é preservado na saída. Exemplos:
+
+```text
+Sent            -> Sent_Recuperada_001
+Archives        -> Archives_Recuperada_001
+Clientes        -> Clientes_Recuperada_001
+caixa.mbox      -> caixa_Recuperada_001
+```
+
 ## Operação no cliente
 
 1. Preserve o backup `.7z` original.
 2. Execute preferencialmente a versão `win-x64`.
-3. Selecione o backup ou o arquivo `Inbox`.
+3. Selecione o backup ou qualquer arquivo MBOX descompactado do Thunderbird.
 4. Informe a senha do `.7z`, quando houver.
-5. Clique em **Analisar backup** e confirme a `Inbox` correta.
+5. Em backups compactados, clique em **Analisar backup** e selecione a caixa desejada.
 6. Selecione uma unidade com espaço livre suficiente.
 7. Mantenha o tamanho padrão de 1,50 GiB.
 8. Inicie a recuperação.
@@ -58,10 +87,10 @@ Isso normalmente recupera a visualização das mensagens quando o problema é ca
 ## Segurança operacional
 
 - Nunca execute a recuperação sobre a única cópia disponível.
-- Não compacte a Inbox original de 28 GB.
+- Não compacte nem altere o arquivo MBOX original durante a recuperação.
 - Não importe arquivos terminados em `.partial`.
-- Não apague o `.7z` nem a Inbox original antes de conferir todas as partes.
-- A pasta de destino deve ter, no mínimo, o tamanho descompactado da Inbox mais 10% de folga.
+- Não apague o backup nem o arquivo MBOX original antes de conferir todas as partes.
+- A pasta de destino deve ter, no mínimo, o tamanho descompactado da caixa MBOX mais 10% de folga.
 
 ## Desenvolvimento
 

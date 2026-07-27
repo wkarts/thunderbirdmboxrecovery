@@ -84,6 +84,7 @@ public static class ArchiveService
         if (string.IsNullOrWhiteSpace(fileName)) return false;
         var extension = Path.GetExtension(fileName);
         if (ExcludedExtensions.Contains(extension)) return false;
+        if (extension.Equals(".mbox", StringComparison.OrdinalIgnoreCase)) return true;
         return string.IsNullOrEmpty(extension) || PreferredNames.Contains(fileName) || size >= 16L * 1024 * 1024;
     }
 

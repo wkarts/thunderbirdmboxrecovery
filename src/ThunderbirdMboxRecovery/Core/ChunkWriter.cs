@@ -7,6 +7,7 @@ internal sealed class ChunkWriter : IDisposable
     private readonly string _outputDirectory;
     private readonly long _targetSize;
     private readonly RecoveryLogger _logger;
+    private readonly string _mailboxName;
     private readonly List<ChunkManifest> _parts = [];
     private FileStream? _stream;
     private IncrementalHash? _hash;
@@ -22,10 +23,11 @@ internal sealed class ChunkWriter : IDisposable
     public long CurrentMessages => _messages;
     public string? CurrentFileName => _finalPath is null ? null : Path.GetFileName(_finalPath);
 
-    public ChunkWriter(string outputDirectory, long targetSize, RecoveryLogger logger)
+    public ChunkWriter(string outputDirectory, long targetSize, string mailboxName, RecoveryLogger logger)
     {
         _outputDirectory = outputDirectory;
         _targetSize = targetSize;
+        _mailboxName = MailboxNameResolver.FromSource(mailboxName);
         _logger = logger;
     }
 
@@ -83,7 +85,7 @@ internal sealed class ChunkWriter : IDisposable
     private void OpenNew()
     {
         _index++;
-        var baseName = $"Inbox_Recuperada_{_index:000}";
+        var baseName = $"{_mailboxName}_Recuperada_{_index:000}";
         _finalPath = Path.Combine(_outputDirectory, baseName);
         _partialPath = _finalPath + ".partial";
         _stream = new FileStream(

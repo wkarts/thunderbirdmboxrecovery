@@ -67,7 +67,7 @@ public sealed class MainForm : Form
         };
         var subtitle = new Label
         {
-            Text = "Processa arquivos grandes diretamente ou dentro de backup .7z, sem alterar a origem.",
+            Text = "Processa qualquer caixa MBOX do Thunderbird, direta ou compactada, sem alterar a origem.",
             AutoSize = true,
             ForeColor = SystemColors.GrayText,
             Location = new Point(2, 38)
@@ -87,7 +87,7 @@ public sealed class MainForm : Form
         settings.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         settings.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
 
-        AddRow(settings, 0, "Origem (Inbox ou backup):", _sourceText, _browseSourceButton);
+        AddRow(settings, 0, "Arquivo MBOX ou backup:", _sourceText, _browseSourceButton);
         _browseSourceButton.Text = "Selecionar...";
 
         _passwordText.UseSystemPasswordChar = true;
@@ -113,7 +113,7 @@ public sealed class MainForm : Form
         chunkPanel.Controls.Add(new Label { Text = "GiB por parte (recomendado: 1,50 GiB)", AutoSize = true, Margin = new Padding(8, 6, 0, 0) });
         AddRow(settings, 4, "Tamanho das partes:", chunkPanel, new Label());
 
-        _summaryLabel.Text = "Selecione o arquivo Inbox ou o backup compactado.";
+        _summaryLabel.Text = "Selecione Inbox, Sent, Drafts, Archives, Trash ou qualquer pasta MBOX personalizada.";
         _summaryLabel.AutoSize = true;
         _summaryLabel.ForeColor = SystemColors.GrayText;
         settings.Controls.Add(new Label { Text = "Análise:", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(3, 8, 3, 8) }, 0, 5);
@@ -205,6 +205,7 @@ public sealed class MainForm : Form
         _cancelButton.Click += (_, _) => CancelRecovery();
         _openOutputButton.Click += (_, _) => OpenLastOutput();
         _sourceText.TextChanged += (_, _) => UpdateArchiveControls();
+        _archiveEntries.SelectedIndexChanged += (_, _) => UpdateSelectedArchiveEntry();
         DragEnter += OnDragEnter;
         DragDrop += async (_, args) => await OnDragDropAsync(args);
         FormClosing += OnFormClosing;
@@ -214,8 +215,8 @@ public sealed class MainForm : Form
     {
         using var dialog = new OpenFileDialog
         {
-            Title = "Selecione a Inbox ou o backup compactado",
-            Filter = "Inbox e backups|Inbox;*.7z;*.zip;*.rar;*.tar;*.gz;*.bz2;*.xz|Todos os arquivos|*.*",
+            Title = "Selecione qualquer arquivo MBOX do Thunderbird ou um backup compactado",
+            Filter = "Todos os arquivos (inclui MBOX sem extensão)|*.*|MBOX exportado|*.mbox|Backups compactados|*.7z;*.zip;*.rar;*.tar;*.gz;*.bz2;*.xz",
             CheckFileExists = true,
             Multiselect = false
         };
@@ -256,9 +257,11 @@ public sealed class MainForm : Form
 
             if (!ArchiveService.IsArchive(source))
             {
+                MboxSourceValidator.ValidateDirectFile(source);
                 _expectedInputBytes = sourceInfo.Length;
-                _summaryLabel.Text = $"MBOX direto: {SizeFormatter.Format(sourceInfo.Length)}. A origem será aberta somente para leitura.";
-                AppendLog($"MBOX direto detectado: {SizeFormatter.Format(sourceInfo.Length)}.");
+                var mailboxName = MailboxNameResolver.FromSource(source);
+                _summaryLabel.Text = $"MBOX direto: {mailboxName} — {SizeFormatter.Format(sourceInfo.Length)}. A origem será aberta somente para leitura.";
+                AppendLog($"Arquivo MBOX direto selecionado: {mailboxName} ({SizeFormatter.Format(sourceInfo.Length)}).");
                 return;
             }
 
@@ -267,9 +270,9 @@ public sealed class MainForm : Form
                 throw new InvalidDataException("Nenhuma caixa MBOX provável foi encontrada dentro do arquivo compactado.");
 
             _archiveEntries.DataSource = entries.ToList();
-            var inboxIndex = entries.ToList().FindIndex(entry =>
+            var preferredIndex = entries.ToList().FindIndex(entry =>
                 string.Equals(Path.GetFileName(entry.Key.Replace('/', Path.DirectorySeparatorChar)), "Inbox", StringComparison.OrdinalIgnoreCase));
-            _archiveEntries.SelectedIndex = inboxIndex >= 0 ? inboxIndex : 0;
+            _archiveEntries.SelectedIndex = preferredIndex >= 0 ? preferredIndex : 0;
             _expectedInputBytes = ((ArchiveEntryInfo)_archiveEntries.SelectedItem!).Size;
             _summaryLabel.Text = $"Backup: {SizeFormatter.Format(sourceInfo.Length)}; caixa selecionada descompactada: {SizeFormatter.Format(_expectedInputBytes)}.";
             AppendLog($"Encontradas {entries.Count} caixas prováveis. Selecionada: {((ArchiveEntryInfo)_archiveEntries.SelectedItem!).Key}.");
@@ -307,6 +310,19 @@ public sealed class MainForm : Form
             return;
         }
 
+        if (!ArchiveService.IsArchive(source))
+        {
+            try
+            {
+                MboxSourceValidator.ValidateDirectFile(source);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Origem inválida", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+        }
+
         if (ArchiveService.IsArchive(source) && _archiveEntries.SelectedItem is not ArchiveEntryInfo)
         {
             await AnalyzeSourceAsync();
@@ -321,7 +337,8 @@ public sealed class MainForm : Form
         string recoveryDirectory;
         try
         {
-            recoveryDirectory = RecoveryCoordinator.CreateOutputDirectory(outputRoot);
+            var mailboxName = MailboxNameResolver.FromSource(source, archiveEntry?.Key);
+            recoveryDirectory = RecoveryCoordinator.CreateOutputDirectory(outputRoot, mailboxName);
             RecoveryCoordinator.ValidateFreeSpace(recoveryDirectory, expectedBytes);
         }
         catch (Exception ex)
@@ -344,6 +361,7 @@ public sealed class MainForm : Form
             ArchiveEntryKey = archiveEntry?.Key,
             ArchivePassword = _passwordText.Text,
             OutputDirectory = recoveryDirectory,
+            MailboxName = MailboxNameResolver.FromSource(source, archiveEntry?.Key),
             TargetChunkBytes = (long)(_chunkSize.Value * 1024M * 1024M * 1024M),
             ExpectedInputBytes = expectedBytes
         };
@@ -424,6 +442,14 @@ public sealed class MainForm : Form
             FileName = _lastOutputDirectory,
             UseShellExecute = true
         });
+    }
+
+    private void UpdateSelectedArchiveEntry()
+    {
+        if (_archiveEntries.SelectedItem is not ArchiveEntryInfo selected) return;
+        _expectedInputBytes = selected.Size;
+        var mailboxName = MailboxNameResolver.FromSource(_sourceText.Text.Trim(), selected.Key);
+        _summaryLabel.Text = $"Caixa selecionada: {mailboxName} — {SizeFormatter.Format(selected.Size)} descompactados.";
     }
 
     private void UpdateArchiveControls()

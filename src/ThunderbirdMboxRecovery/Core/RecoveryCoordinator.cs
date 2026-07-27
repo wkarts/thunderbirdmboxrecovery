@@ -2,11 +2,12 @@ namespace ThunderbirdMboxRecovery.Core;
 
 public static class RecoveryCoordinator
 {
-    public static string CreateOutputDirectory(string outputRoot)
+    public static string CreateOutputDirectory(string outputRoot, string mailboxName)
     {
         var fullRoot = Path.GetFullPath(outputRoot);
         Directory.CreateDirectory(fullRoot);
-        var baseName = $"Recuperacao_Inbox_{DateTime.Now:yyyyMMdd_HHmmss}";
+        var safeMailboxName = MailboxNameResolver.FromSource(mailboxName);
+        var baseName = $"Recuperacao_{safeMailboxName}_{DateTime.Now:yyyyMMdd_HHmmss}";
         var candidate = Path.Combine(fullRoot, baseName);
         var suffix = 1;
         while (Directory.Exists(candidate))
