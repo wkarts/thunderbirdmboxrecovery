@@ -94,7 +94,7 @@ public sealed class MboxSourceControl : UserControl
                 throw new InvalidDataException("Nenhuma caixa MBOX provável foi encontrada no arquivo compactado.");
             _entries.DisplayMember = nameof(ArchiveEntryInfo.DisplayText);
             _entries.DataSource = entries.ToList();
-            var inbox = entries.ToList().FindIndex(entry => Path.GetFileName(entry.Key).Equals("Inbox", StringComparison.OrdinalIgnoreCase));
+            var inbox = entries.ToList().FindIndex(entry => string.Equals(Path.GetFileName(entry.Key), "Inbox", StringComparison.OrdinalIgnoreCase));
             _entries.SelectedIndex = inbox >= 0 ? inbox : 0;
             UpdateEntrySummary();
         }

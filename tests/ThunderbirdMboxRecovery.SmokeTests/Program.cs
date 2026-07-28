@@ -15,7 +15,10 @@ internal static class Program
             RunMsfValidationTest(root);
             RunSqliteValidationTest(root);
             RunProfileBackupAndRestoreTest(root);
-            Console.WriteLine("Smoke tests da Thunderbird Recovery Suite 2.1 concluídos com sucesso.");
+            RunMessagesIntoExistingProfileTest(root);
+            RunCompleteDataRootBackupRestoreTest(root);
+            RunProfileSkeletonTest(root);
+            Console.WriteLine("Smoke tests da Thunderbird Recovery Suite 2.2 concluídos com sucesso.");
             return 0;
         }
         catch (Exception exception)
@@ -239,6 +242,172 @@ internal static class Program
 
         Assert(sevenZipRestore.RestoredFiles == sevenZipBackup.Files, "A restauração 7Z deve recuperar todos os arquivos.");
         Assert(File.Exists(Path.Combine(sevenZipDestination, "Mail", "Local Folders", "Inbox")), "A Inbox não foi restaurada do backup 7Z.");
+
+        var occupiedNewProfile = Path.Combine(root, "occupied-new-profile");
+        Directory.CreateDirectory(occupiedNewProfile);
+        File.WriteAllText(Path.Combine(occupiedNewProfile, "existing.txt"), "preservar", new UTF8Encoding(false));
+        var collisionRejected = false;
+        try
+        {
+            ProfileRestoreService.RestoreAsync(new ProfileRestoreOptions
+            {
+                BackupPath = backup.BackupPath,
+                DestinationProfilePath = occupiedNewProfile,
+                TargetMode = ProfileRestoreTargetMode.CreateNewProfile,
+                CreateSafetyBackup = false,
+                OverwriteExistingFiles = true,
+                VerifyHashes = true
+            }, null, CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (InvalidOperationException)
+        {
+            collisionRejected = true;
+        }
+        Assert(collisionRejected, "A criação de novo perfil deve rejeitar um destino não vazio.");
+        Assert(File.ReadAllText(Path.Combine(occupiedNewProfile, "existing.txt"), Encoding.UTF8) == "preservar", "O destino ocupado não pode ser alterado.");
+    }
+
+
+    private static void RunMessagesIntoExistingProfileTest(string root)
+    {
+        var sourceProfile = Path.Combine(root, "messages-source-profile");
+        Directory.CreateDirectory(Path.Combine(sourceProfile, "Mail", "Local Folders"));
+        File.WriteAllText(Path.Combine(sourceProfile, "prefs.js"), "user_pref(\"test\", true);", new UTF8Encoding(false));
+        File.Copy(CreateSampleMbox(root), Path.Combine(sourceProfile, "Mail", "Local Folders", "Inbox"));
+        File.WriteAllText(Path.Combine(sourceProfile, "Mail", "Local Folders", "Inbox.msf"), "indice-obsoleto", new UTF8Encoding(false));
+
+        var backupPath = Path.Combine(root, "messages-source.zip");
+        ProfileBackupService.CreateAsync(new ProfileBackupOptions
+        {
+            Profile = new ThunderbirdProfileInfo
+            {
+                Name = "origem-mensagens",
+                Path = sourceProfile,
+                IsDefault = false,
+                IsRelative = false
+            },
+            DestinationArchivePath = backupPath,
+            ArchiveFormat = ProfileBackupArchiveFormat.Zip,
+            Mode = ProfileBackupMode.Complete
+        }, null, CancellationToken.None).GetAwaiter().GetResult();
+
+        var existingProfile = Path.Combine(root, "existing-profile");
+        Directory.CreateDirectory(Path.Combine(existingProfile, "Mail", "Local Folders"));
+        File.WriteAllText(Path.Combine(existingProfile, "prefs.js"), "user_pref(\"existing\", true);", new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(existingProfile, "Mail", "Local Folders", "Inbox"), "conteudo-atual", new UTF8Encoding(false));
+
+        var result = ProfileRestoreService.RestoreAsync(new ProfileRestoreOptions
+        {
+            BackupPath = backupPath,
+            DestinationProfilePath = existingProfile,
+            TargetMode = ProfileRestoreTargetMode.RestoreMessagesToExisting,
+            MessagesSubfolderName = "Restaurado_Teste",
+            CreateSafetyBackup = false,
+            OverwriteExistingFiles = false,
+            VerifyHashes = true,
+            Mode = ProfileBackupMode.MessagesOnly
+        }, null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Assert(result.RestoredFiles >= 1, "A restauração em perfil existente deve recuperar mensagens.");
+        Assert(File.ReadAllText(Path.Combine(existingProfile, "Mail", "Local Folders", "Inbox"), Encoding.UTF8) == "conteudo-atual", "A Inbox existente não pode ser sobrescrita.");
+        Assert(File.Exists(Path.Combine(existingProfile, "Mail", "Local Folders", "Restaurado_Teste")), "O contêiner de Pastas Locais não foi criado.");
+        Assert(File.Exists(Path.Combine(existingProfile, "Mail", "Local Folders", "Restaurado_Teste.sbd", "Inbox")), "A Inbox restaurada não foi colocada na pasta isolada.");
+        Assert(!File.Exists(Path.Combine(existingProfile, "Mail", "Local Folders", "Restaurado_Teste.sbd", "Inbox.msf")), "Índices MSF antigos não devem ser importados junto com as mensagens.");
+    }
+
+    private static void RunCompleteDataRootBackupRestoreTest(string root)
+    {
+        var dataRoot = Path.Combine(root, "thunderbird-roaming-source");
+        var profile = Path.Combine(dataRoot, "Profiles", "abc.default-release");
+        var localCache = Path.Combine(root, "thunderbird-local-cache-source");
+        Directory.CreateDirectory(Path.Combine(profile, "Mail", "Local Folders"));
+        Directory.CreateDirectory(localCache);
+        File.WriteAllText(Path.Combine(dataRoot, "profiles.ini"), "[Profile0]\nName=default-release\nIsRelative=1\nPath=Profiles/abc.default-release\nDefault=1\n", new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(dataRoot, "installs.ini"), "[test]\nDefault=Profiles/abc.default-release\n", new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(profile, "prefs.js"), "user_pref(\"profile\", true);", new UTF8Encoding(false));
+        File.Copy(CreateSampleMbox(root), Path.Combine(profile, "Mail", "Local Folders", "Inbox"));
+        File.WriteAllText(Path.Combine(localCache, "cache.marker"), "cache", new UTF8Encoding(false));
+
+        var dataRootInfo = new ThunderbirdDataRootInfo
+        {
+            Name = "teste",
+            Path = dataRoot,
+            Type = ThunderbirdDataRootType.Custom,
+            LocalCachePath = localCache
+        };
+        var backupPath = Path.Combine(root, "thunderbird-completo.7z");
+        var backup = ProfileBackupService.CreateAsync(new ProfileBackupOptions
+        {
+            Profile = new ThunderbirdProfileInfo
+            {
+                Name = "Thunderbird completo",
+                Path = dataRoot,
+                IsDefault = false,
+                IsRelative = false,
+                DataRootPath = dataRoot
+            },
+            DataRoot = dataRootInfo,
+            Scope = ProfileBackupScope.ThunderbirdDataRoot,
+            DestinationArchivePath = backupPath,
+            ArchiveFormat = ProfileBackupArchiveFormat.SevenZip,
+            Mode = ProfileBackupMode.Complete,
+            IncludeLocalCache = true
+        }, null, CancellationToken.None).GetAwaiter().GetResult();
+
+        var inspection = ProfileRestoreService.InspectBackup(backup.BackupPath);
+        Assert(inspection.Scope == ProfileBackupScope.ThunderbirdDataRoot, "O manifesto deve identificar backup completo do Thunderbird.");
+        Assert(inspection.Manifest?.IncludedLocalCache == true, "O manifesto deve registrar o cache local incluído.");
+
+        var restoredRoot = Path.Combine(root, "thunderbird-roaming-restored");
+        var restoredCache = Path.Combine(root, "thunderbird-local-cache-restored");
+        var restore = ProfileRestoreService.RestoreAsync(new ProfileRestoreOptions
+        {
+            BackupPath = backup.BackupPath,
+            DestinationProfilePath = restoredRoot,
+            DestinationDataRootPath = restoredRoot,
+            DestinationLocalCachePath = restoredCache,
+            TargetMode = ProfileRestoreTargetMode.RestoreThunderbirdDataRoot,
+            CreateSafetyBackup = false,
+            OverwriteExistingFiles = true,
+            VerifyHashes = true,
+            RestoreLocalCache = true
+        }, null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Assert(restore.RestoredFiles == backup.Files, "A restauração completa deve recuperar todos os arquivos do backup.");
+        Assert(File.Exists(Path.Combine(restoredRoot, "profiles.ini")), "profiles.ini não foi restaurado.");
+        Assert(File.Exists(Path.Combine(restoredRoot, "Profiles", "abc.default-release", "Mail", "Local Folders", "Inbox")), "A Inbox do perfil completo não foi restaurada.");
+        Assert(File.Exists(Path.Combine(restoredCache, "cache.marker")), "O cache local opcional não foi restaurado.");
+
+        var occupiedRoot = Path.Combine(root, "thunderbird-root-existing");
+        Directory.CreateDirectory(occupiedRoot);
+        File.WriteAllText(Path.Combine(occupiedRoot, "sentinela.txt"), "antes", new UTF8Encoding(false));
+        var destructiveRestore = ProfileRestoreService.RestoreAsync(new ProfileRestoreOptions
+        {
+            BackupPath = backup.BackupPath,
+            DestinationProfilePath = occupiedRoot,
+            DestinationDataRootPath = occupiedRoot,
+            TargetMode = ProfileRestoreTargetMode.RestoreThunderbirdDataRoot,
+            CreateSafetyBackup = true,
+            SafetyBackupFormat = ProfileBackupArchiveFormat.Zip,
+            OverwriteExistingFiles = true,
+            VerifyHashes = true,
+            RestoreLocalCache = false
+        }, null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Assert(!string.IsNullOrWhiteSpace(destructiveRestore.SafetyBackupPath) && File.Exists(destructiveRestore.SafetyBackupPath), "O backup de segurança da raiz existente não foi criado.");
+        var safetyInspection = ProfileRestoreService.InspectBackup(destructiveRestore.SafetyBackupPath!);
+        Assert(safetyInspection.Scope == ProfileBackupScope.ThunderbirdDataRoot, "O backup de segurança da raiz deve ser reconhecido como Thunderbird completo.");
+        Assert(File.Exists(Path.Combine(occupiedRoot, "profiles.ini")), "A raiz existente não foi substituída pelo backup completo.");
+    }
+
+
+    private static void RunProfileSkeletonTest(string root)
+    {
+        var profile = Path.Combine(root, "profile-skeleton");
+        ThunderbirdProfileService.EnsureProfileSkeleton(profile);
+        Assert(File.Exists(Path.Combine(profile, "prefs.js")), "O esqueleto do perfil deve criar prefs.js.");
+        Assert(Directory.Exists(Path.Combine(profile, "Mail", "Local Folders")), "O esqueleto do perfil deve criar Pastas Locais.");
+        ThunderbirdProfileService.ValidateProfile(profile);
     }
 
     private static RecoveryOptions CreateRecoveryOptions(string source, string output, bool splitOutput, long targetChunkBytes) => new()

@@ -365,7 +365,8 @@ user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);
                 // Procura o processo filho iniciado pelo launcher.
             }
 
-            var candidates = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(executablePath))
+            var processName = Path.GetFileNameWithoutExtension(executablePath) ?? "thunderbird";
+            var candidates = Process.GetProcessesByName(processName)
                 .Select(process => new { Process = process, Matches = ProcessMatches(process, executablePath, launchedAtUtc) })
                 .Where(item => item.Matches)
                 .Select(item => item.Process)

@@ -1,32 +1,63 @@
-# Arquitetura — Thunderbird Recovery Suite 2.1
+# Arquitetura — Thunderbird Recovery Suite 2.2
 
 ## Camadas
 
-- **UI Windows Forms:** splash screen, janela Sobre e módulos operacionais.
-- **Parser MBOX em fluxo:** análise, diagnóstico, reparo e extração EML.
-- **Integração Thunderbird:** detecção de instalação, perfil temporário e geração assistida de MSF.
-- **Backup/Restauração:** classificação de arquivos, ZIP/7Z, manifestos, hashes e restauração segura.
-- **Distribuição:** publish self-contained e framework-dependent para x86/x64, pacotes ZIP/7Z e releases imutáveis.
+- `UI`: Windows Forms, splash, About e páginas operacionais.
+- `Core/MBOX`: parser em fluxo, diagnóstico, reparo e extração EML.
+- `Core/Indexação`: detecção do Thunderbird, perfil temporário, UI Automation e validação MSF/Panorama.
+- `Core/Perfis`: descoberta de raízes de dados, leitura de `profiles.ini`, registro e estimativas.
+- `Core/Backup`: criação ZIP/7Z com manifesto e SHA-256.
+- `Core/Restauração`: inspeção do backup, seleção automática de destino, segurança, hashes e registro de perfil.
 
-## Branding
+## Diretórios de dados
 
-A logomarca do desenvolvedor é recurso incorporado ao assembly e não depende de arquivo externo no computador do cliente.
+A suíte trata separadamente:
 
-## Seleção de mensagens
+- **Roaming/dados principais**: mensagens, perfis, contas, preferências, credenciais e arquivos de associação.
+- **Local/cache**: conteúdo temporário e regenerável, incluído somente quando solicitado.
 
-A grade da aba Explorar mantém o número lógico e os offsets de cada mensagem. A extração seletiva reutiliza o parser em fluxo e filtra pelos números escolhidos, sem carregar o MBOX inteiro na memória.
+Tipos reconhecidos:
 
-## Backup 7Z
+- `TraditionalRoaming`;
+- `MicrosoftStore`;
+- `Custom`.
 
-O escritor 7Z usa LZMA2 e grava cada arquivo do perfil sequencialmente, seguido pelo manifesto. A restauração utiliza leitura sequencial e validação opcional dos hashes registrados.
+## Layout dos backups
 
-## Restauração existente
+### Perfil selecionado
 
-A interface executa as confirmações de risco. O serviço:
+```text
+profile/<arquivo do perfil>
+ThunderbirdRecoverySuite/manifesto_backup.json
+```
 
-- bloqueia perfil em uso;
-- cria backup de segurança opcional;
-- grava cada arquivo em `.restore-partial`;
-- valida SHA-256 antes da substituição;
-- move o parcial somente após sucesso;
-- protege contra caminhos absolutos e travessia de diretórios.
+### Thunderbird completo
+
+```text
+thunderbird-root/<profiles.ini, installs.ini, Profiles/...>
+local-cache/<cache opcional>
+ThunderbirdRecoverySuite/manifesto_backup.json
+```
+
+## Destinos de restauração
+
+- `CreateNewProfile`: pasta nova em `Profiles` e registro automático.
+- `ReplaceExistingProfile`: substituição controlada com snapshot obrigatório.
+- `RestoreMessagesToExisting`: remapeamento para `Mail/Local Folders/<nome>.sbd`.
+- `RestoreThunderbirdDataRoot`: restauração integral da raiz de dados.
+- `ManualFolder`: destino avançado informado pelo operador.
+
+## Segurança
+
+- Origem aberta somente para leitura.
+- Arquivo parcial antes da confirmação.
+- SHA-256 opcional por arquivo e obrigatório para o pacote.
+- Rejeição de caminhos absolutos e traversal.
+- Thunderbird fechado para operações destrutivas.
+- Backup de segurança obrigatório em substituições automáticas.
+
+## Descoberta e proteção de destino 2.2
+
+A camada `ThunderbirdProfileService` mantém a raiz tradicional `%APPDATA%\Thunderbird` disponível como destino mesmo quando ainda não existe, detecta raízes da Microsoft Store e admite caminhos personalizados. A tela de restauração associa o tipo registrado no manifesto à raiz compatível encontrada no computador.
+
+A camada `ProfileRestoreService` reforça as confirmações da interface: destinos destrutivos ocupados não podem ser alterados sem backup de segurança e autorização de sobrescrita. Na importação não destrutiva de mensagens, índices e metadados operacionais antigos são descartados para impedir que resumos incompatíveis ocultem as caixas restauradas.

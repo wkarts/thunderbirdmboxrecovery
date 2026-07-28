@@ -16,8 +16,8 @@ public static class MboxSourceValidator
         if (!File.Exists(sourcePath))
             throw new FileNotFoundException("O arquivo de origem não foi encontrado.", sourcePath);
 
-        var fileName = Path.GetFileName(sourcePath);
-        var extension = Path.GetExtension(fileName);
+        var fileName = Path.GetFileName(sourcePath) ?? string.Empty;
+        var extension = Path.GetExtension(fileName) ?? string.Empty;
 
         if (extension.Equals(".msf", StringComparison.OrdinalIgnoreCase))
         {

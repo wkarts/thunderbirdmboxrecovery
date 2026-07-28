@@ -23,8 +23,8 @@ public static class MailboxNameResolver
             rawName = "Caixa_MBOX";
 
         // Aceita MBOX sem extensão e também arquivos exportados como .mbox.
-        if (Path.GetExtension(rawName).Equals(".mbox", StringComparison.OrdinalIgnoreCase))
-            rawName = Path.GetFileNameWithoutExtension(rawName);
+        if (string.Equals(Path.GetExtension(rawName), ".mbox", StringComparison.OrdinalIgnoreCase))
+            rawName = Path.GetFileNameWithoutExtension(rawName) ?? "Caixa_MBOX";
 
         var invalid = Path.GetInvalidFileNameChars();
         var normalized = new string(rawName
