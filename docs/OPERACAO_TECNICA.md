@@ -45,14 +45,25 @@ A aplicação reconstrói a estrutura utilizável da caixa MBOX em um arquivo ú
 
 Esse processo é apropriado para Inbox excessivamente grande, índice `.msf` inconsistente e corrupção localizada. Não é possível reconstruir dados que já tenham sido fisicamente sobrescritos, truncados ou removidos do backup.
 
-## Distribuição dos binários
+## Distribuição e versionamento dos binários
 
-Os workflows não utilizam mais `actions/upload-artifact`. Os executáveis e pacotes são enviados diretamente para GitHub Releases:
+Os workflows não utilizam `actions/upload-artifact`. Os executáveis e pacotes são enviados diretamente para GitHub Releases.
 
-- `continuous`: build automático após atualização da branch principal;
-- `v*`: release estável criada por tag.
+Cada atualização da branch principal cria uma versão nova e imutável no formato:
 
-Isso evita falhas causadas pela cota compartilhada de armazenamento de artifacts do GitHub Actions.
+```text
+v<MAJOR>.<MINOR>.<GITHUB_RUN_NUMBER>
+```
+
+Exemplo:
+
+```text
+v1.3.27
+ThunderbirdMboxRecovery-v1.3.27-win-x64.exe
+ThunderbirdMboxRecovery-v1.3.27-win-x86.exe
+```
+
+Não existe release móvel `continuous`. O workflow não move tags, não usa `--clobber`, não apaga versões anteriores e falha caso a tag calculada já exista. Isso mantém todo o histórico de releases e evita a cota compartilhada de armazenamento de artifacts do GitHub Actions.
 
 
 ## Modo de saída

@@ -7,20 +7,15 @@ where dotnet >nul 2>nul || (
     exit /b 1
 )
 
-if exist artifacts rmdir /s /q artifacts
-mkdir artifacts
+set "VERSION=%~1"
+if "%VERSION%"=="" set "VERSION=1.3.0"
 
-for %%R in (win-x86 win-x64) do (
-    echo Publicando %%R...
-    dotnet restore ThunderbirdMboxRecovery.sln -r %%R || exit /b 1
-    dotnet publish src\ThunderbirdMboxRecovery\ThunderbirdMboxRecovery.csproj ^
-        -c Release -r %%R --self-contained true --no-restore ^
-        -p:PublishSingleFile=true -p:PublishTrimmed=false ^
-        -o artifacts\%%R || exit /b 1
-    move /y artifacts\%%R\ThunderbirdMboxRecovery.exe artifacts\%%R\ThunderbirdMboxRecovery-%%R.exe >nul
-    certutil -hashfile artifacts\%%R\ThunderbirdMboxRecovery-%%R.exe SHA256 > artifacts\%%R\SHA256-%%R.txt
-)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Publish-Portable.ps1" ^
+    -OutputDirectory artifacts ^
+    -Version "%VERSION%"
+
+if errorlevel 1 exit /b %errorlevel%
 
 echo.
-echo Builds concluidos em: %CD%\artifacts
+echo Builds da versao %VERSION% concluidos em: %CD%\artifacts
 endlocal

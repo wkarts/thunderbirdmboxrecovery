@@ -6,8 +6,8 @@ Utilitário Windows portátil para recuperar caixas MBOX grandes do Mozilla Thun
 
 O operador leva somente o executável correspondente à arquitetura do computador do cliente:
 
-- `ThunderbirdMboxRecovery-win-x64.exe`
-- `ThunderbirdMboxRecovery-win-x86.exe`
+- `ThunderbirdMboxRecovery-v<VERSAO>-win-x64.exe`
+- `ThunderbirdMboxRecovery-v<VERSAO>-win-x86.exe`
 
 O programa é autossuficiente, não exige instalação do .NET, Python, Thunderbird ou 7-Zip para executar a recuperação.
 
@@ -121,13 +121,20 @@ dotnet publish src/ThunderbirdMboxRecovery/ThunderbirdMboxRecovery.csproj -c Rel
 
 ## Fluxos do GitHub Actions
 
-- `ci.yml`: valida Pull Requests sem publicar executáveis ou artefatos.
-- `build.yml`: gera `win-x86` e `win-x64` e atualiza diretamente a Release de pré-lançamento `continuous`, sem usar armazenamento de artifacts.
-- `release.yml`: gera as duas arquiteturas em um único job e publica diretamente a Release estável para tags `v*`, sem `upload-artifact`/`download-artifact`.
+- `ci.yml`: valida Pull Requests sem publicar executáveis, releases ou artifacts.
+- `release.yml`: após cada push em `main` ou `master`, gera `win-x86` e `win-x64` e cria uma nova release imutável.
+- Não existe mais release `continuous`.
+- Nenhuma tag anterior é movida, reutilizada ou apagada.
+- Nenhum asset existente é sobrescrito com `--clobber`.
+- O número da versão é automático no formato `<MAJOR>.<MINOR>.<GITHUB_RUN_NUMBER>`, por exemplo `v1.3.27`.
+- Os binários e ZIPs recebem a versão no nome, por exemplo `ThunderbirdMboxRecovery-v1.3.27-win-x64.exe`.
+- A publicação é feita diretamente em GitHub Releases, sem consumir a cota de `actions/upload-artifact`.
+
+Cada execução manual do workflow também recebe um novo `GITHUB_RUN_NUMBER` e, consequentemente, uma nova versão. Se uma tag calculada já existir, o workflow falha de propósito em vez de alterar a release anterior.
 
 
 ## Saída única e `.msf`
 
-A versão 1.2.0 gera, por padrão, apenas um arquivo como `Inbox_Recuperada` ou `Sent_Recuperada`. O operador pode marcar o fracionamento quando desejar várias partes.
+A versão 1.3.0 gera, por padrão, apenas um arquivo como `Inbox_Recuperada` ou `Sent_Recuperada`. O operador pode marcar o fracionamento quando desejar várias partes.
 
 O `.msf` criado ao lado de cada MBOX é intencionalmente vazio: ele é um marcador para que o Thunderbird reconstrua o banco de índice a partir das mensagens do MBOX. O conteúdo real dos emails permanece exclusivamente no arquivo MBOX sem extensão.
