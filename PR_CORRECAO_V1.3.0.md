@@ -18,6 +18,9 @@ Corrigir o bloqueio de build/release da versão 1.3.0 e consolidar uma estratég
 
 ## Correções
 
+- corrige `NETSDK1151` causado por `SelfContained=true` aplicado globalmente;
+- fixa a resolução do SDK na família .NET 8 por `global.json`;
+
 - corrige a interpolação PowerShell `${Version}:` no script de publicação;
 - valida sintaticamente todos os `.ps1` antes do build;
 - adiciona build com avisos tratados como erro;
@@ -35,7 +38,7 @@ A linha 1.3 não altera flags de mensagens excluídas/expurgadas. Essa evoluçã
 ## Critérios de aceite
 
 - análise sintática PowerShell aprovada;
-- solução compilada sem avisos;
+- solução compilada sem avisos e sem `NETSDK1151`;
 - smoke tests aprovados;
 - publish self-contained x86 e x64 aprovado;
 - nenhuma criação de `.msf` vazio;

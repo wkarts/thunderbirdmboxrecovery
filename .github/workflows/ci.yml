@@ -21,6 +21,16 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Confirm .NET 8 SDK
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $sdkVersion = (dotnet --version).Trim()
+          Write-Host "SDK .NET selecionado: $sdkVersion"
+          if (-not $sdkVersion.StartsWith("8.")) {
+            throw "SDK .NET incorreto. Esperado 8.x, obtido $sdkVersion."
+          }
+
       - name: Validate PowerShell syntax
         shell: pwsh
         run: |
@@ -34,7 +44,9 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
 
-          dotnet restore ThunderbirdMboxRecovery.sln
+          dotnet restore ThunderbirdMboxRecovery.sln `
+            -p:SelfContained=false `
+            -p:PublishSingleFile=false
           if ($LASTEXITCODE -ne 0) {
             throw "Falha no restore da solução."
           }
@@ -42,6 +54,8 @@ jobs:
           dotnet build ThunderbirdMboxRecovery.sln `
             -c Release `
             --no-restore `
+            -p:SelfContained=false `
+            -p:PublishSingleFile=false `
             -warnaserror
           if ($LASTEXITCODE -ne 0) {
             throw "Falha no build da solução."
@@ -69,7 +83,10 @@ jobs:
           foreach ($rid in @("win-x86", "win-x64")) {
             $output = Join-Path $env:RUNNER_TEMP $rid
 
-            dotnet restore $project -r $rid
+            dotnet restore $project `
+              -r $rid `
+              -p:SelfContained=true `
+              -p:PublishSingleFile=true
             if ($LASTEXITCODE -ne 0) {
               throw "Falha no restore para $rid."
             }
@@ -80,6 +97,7 @@ jobs:
               --self-contained true `
               --no-restore `
               -p:PublishSingleFile=true `
+              -p:IncludeNativeLibrariesForSelfExtract=true `
               -p:PublishTrimmed=false `
               -o $output
             if ($LASTEXITCODE -ne 0) {

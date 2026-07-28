@@ -53,7 +53,10 @@ foreach ($runtime in $runtimes) {
     $runtimeOutput = Join-Path $outputRoot $runtime
     New-Item -ItemType Directory -Path $runtimeOutput -Force | Out-Null
 
-    & dotnet restore $projectPath -r $runtime
+    & dotnet restore $projectPath `
+        -r $runtime `
+        -p:SelfContained=true `
+        -p:PublishSingleFile=true
     if ($LASTEXITCODE -ne 0) {
         throw "Falha no restore para $runtime."
     }
@@ -64,6 +67,7 @@ foreach ($runtime in $runtimes) {
         --self-contained true `
         --no-restore `
         -p:PublishSingleFile=true `
+        -p:IncludeNativeLibrariesForSelfExtract=true `
         -p:PublishTrimmed=false `
         -p:Version=$Version `
         -p:FileVersion=$fileVersion `

@@ -24,3 +24,8 @@ O ambiente usado para preparar o pacote não possui `dotnet` nem `pwsh`. Portant
 6. publish self-contained `win-x64`.
 
 A release somente é criada depois das seis etapas.
+
+
+## Correção da validação NETSDK1151
+
+O build normal da solução é framework-dependent. A propriedade self-contained é aplicada somente ao publish portátil. O `global.json` impede que o runner selecione automaticamente uma versão principal do SDK diferente do .NET 8.
