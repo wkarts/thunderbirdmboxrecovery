@@ -7,24 +7,30 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <AssemblyName>ThunderbirdMboxRecovery</AssemblyName>
+    <AssemblyName>ThunderbirdRecoverySuite</AssemblyName>
     <RootNamespace>ThunderbirdMboxRecovery</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>1.4.0</Version>
-    <FileVersion>1.4.0.0</FileVersion>
-    <AssemblyVersion>1.4.0.0</AssemblyVersion>
-    <InformationalVersion>1.4.0</InformationalVersion>
+    <Version>2.0.0</Version>
+    <FileVersion>2.0.0.0</FileVersion>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <InformationalVersion>2.0.0</InformationalVersion>
     <Authors>WWSoftware's Sistemas</Authors>
     <Company>WWSoftware's Sistemas</Company>
-    <Product>Thunderbird MBOX Recovery</Product>
-    <Description>Recuperação segura de caixas MBOX grandes do Mozilla Thunderbird.</Description>
+    <Product>Thunderbird Recovery Suite</Product>
+    <Description>Suíte portátil para diagnosticar, explorar, reparar, extrair, indexar, fazer backup e restaurar dados do Mozilla Thunderbird.</Description>
     <PublishTrimmed>false</PublishTrimmed>
     <DebugType>embedded</DebugType>
     <InvariantGlobalization>false</InvariantGlobalization>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="SharpCompress" Version="0.50.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
   </ItemGroup>
 </Project>

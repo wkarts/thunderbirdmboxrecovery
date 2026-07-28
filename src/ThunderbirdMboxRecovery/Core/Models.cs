@@ -54,7 +54,7 @@ public sealed class RecoveryResult
 public sealed class RecoveryManifest
 {
     [JsonPropertyName("aplicacao")]
-    public string Application { get; init; } = "Thunderbird MBOX Recovery";
+    public string Application { get; init; } = "Thunderbird Recovery Suite";
 
     [JsonPropertyName("versao")]
     public string Version { get; init; } = ApplicationVersion.Current;
@@ -163,7 +163,7 @@ public static class ApplicationVersion
                 : informationalVersion;
         }
 
-        return assembly.GetName().Version?.ToString(3) ?? "1.4.0";
+        return assembly.GetName().Version?.ToString(3) ?? "2.0.0";
     }
 }
 

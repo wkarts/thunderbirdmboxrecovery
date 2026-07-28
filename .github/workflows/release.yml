@@ -111,7 +111,7 @@ jobs:
             -c Release `
             --no-build
           if ($LASTEXITCODE -ne 0) {
-            throw "Os smoke tests da recuperação falharam."
+            throw "Os smoke tests integrados falharam."
           }
 
       - name: Build portable win-x86 and win-x64
@@ -127,9 +127,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = "Stop"
-          $title = "Thunderbird MBOX Recovery v$env:APP_VERSION"
+          $title = "Thunderbird Recovery Suite v$env:APP_VERSION"
           $notes = @"
-          Nova versão automática e imutável do Thunderbird MBOX Recovery.
+          Nova versão automática e imutável do Thunderbird Recovery Suite.
 
           Versão: $env:APP_VERSION
           Tag: $env:TAG_NAME
@@ -144,7 +144,7 @@ jobs:
           Validações executadas antes da publicação:
           - análise sintática dos scripts PowerShell;
           - build da solução com warnings tratados como erros;
-          - smoke tests de recuperação MBOX;
+          - smoke tests de reparo, análise, EML, índices, backup e restauração;
           - publicação portátil x86 e x64.
 
           Esta release não reutiliza tags, não apaga versões anteriores e não substitui assets existentes.

@@ -8,11 +8,14 @@ where dotnet >nul 2>nul || (
 )
 
 set "VERSION=%~1"
-if "%VERSION%"=="" set "VERSION=1.4.0"
+if "%VERSION%"=="" set "VERSION=2.0.0"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Publish-Portable.ps1" ^
-    -OutputDirectory artifacts ^
-    -Version "%VERSION%"
+where pwsh >nul 2>nul
+if not errorlevel 1 (
+    pwsh -NoProfile -File "%~dp0scripts\Publish-Portable.ps1" -OutputDirectory artifacts -Version "%VERSION%"
+) else (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Publish-Portable.ps1" -OutputDirectory artifacts -Version "%VERSION%"
+)
 
 if errorlevel 1 exit /b %errorlevel%
 

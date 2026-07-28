@@ -5,7 +5,7 @@ param(
 
     [Parameter()]
     [ValidatePattern('^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$')]
-    [string] $Version = "1.4.0"
+    [string] $Version = "2.0.0"
 )
 
 Set-StrictMode -Version Latest
@@ -77,8 +77,8 @@ foreach ($runtime in $runtimes) {
         throw "Falha no publish para $runtime."
     }
 
-    $publishedExecutable = Join-Path $runtimeOutput "ThunderbirdMboxRecovery.exe"
-    $portableName = "ThunderbirdMboxRecovery-v$Version-$runtime.exe"
+    $publishedExecutable = Join-Path $runtimeOutput "ThunderbirdRecoverySuite.exe"
+    $portableName = "ThunderbirdRecoverySuite-v$Version-$runtime.exe"
     $portableExecutable = Join-Path $runtimeOutput $portableName
 
     if (-not (Test-Path $publishedExecutable -PathType Leaf)) {
@@ -97,7 +97,7 @@ foreach ($runtime in $runtimes) {
     $hash = (Get-FileHash $portableExecutable -Algorithm SHA256).Hash.ToLowerInvariant()
     "$hash *$portableName" | Set-Content $hashFile -Encoding ascii
 
-    $zipName = "ThunderbirdMboxRecovery-v$Version-$runtime.zip"
+    $zipName = "ThunderbirdRecoverySuite-v$Version-$runtime.zip"
     $zipPath = Join-Path $outputRoot $zipName
     Compress-Archive `
         -Path $portableExecutable, $hashFile, $readmePath, $operationGuidePath `

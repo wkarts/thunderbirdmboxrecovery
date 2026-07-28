@@ -2,9 +2,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThunderbirdMboxRecovery", "src\ThunderbirdMboxRecovery\ThunderbirdMboxRecovery.csproj", "{8A98D067-C2D2-43A0-A06B-4DAF516C3E77}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThunderbirdRecoverySuite", "src\ThunderbirdMboxRecovery\ThunderbirdMboxRecovery.csproj", "{8A98D067-C2D2-43A0-A06B-4DAF516C3E77}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThunderbirdMboxRecovery.SmokeTests", "tests\ThunderbirdMboxRecovery.SmokeTests\ThunderbirdMboxRecovery.SmokeTests.csproj", "{4D884F8B-7B37-4F69-B5AE-2B71A3F54B14}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThunderbirdRecoverySuite.SmokeTests", "tests\ThunderbirdMboxRecovery.SmokeTests\ThunderbirdMboxRecovery.SmokeTests.csproj", "{4D884F8B-7B37-4F69-B5AE-2B71A3F54B14}"
 EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution
