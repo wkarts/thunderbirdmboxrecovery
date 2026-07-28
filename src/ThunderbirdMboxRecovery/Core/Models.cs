@@ -163,7 +163,7 @@ public static class ApplicationVersion
                 : informationalVersion;
         }
 
-        return assembly.GetName().Version?.ToString(3) ?? "2.0.0";
+        return assembly.GetName().Version?.ToString(3) ?? "2.1.0";
     }
 }
 

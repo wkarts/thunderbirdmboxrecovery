@@ -1,76 +1,80 @@
-Thunderbird Recovery Suite 2.0 — Manifesto de arquivos
-Gerado em: 2026-07-28T02:51:39.442241+00:00
-Total de arquivos listados: 70
+THUNDERBIRD RECOVERY SUITE 2.1.0 — MANIFESTO DE ARQUIVOS
+Gerado em: 2026-07-28T05:26:39.770232+00:00
+Total de arquivos (sem este manifesto): 75
 
-Formato: SHA256  TAMANHO_BYTES  CAMINHO
-
-cc0fef14e06922b5bd9ca496d1843e2851117c6567e0737559f11c5387f47f4e          3416  .github/workflows/ci.yml
-29123692a8bca5945eb1c60f59a323e54bf818aaffca94c18ac9a72988117c43          5722  .github/workflows/release.yml
-6135f9a36bdb5569e6cd9c8065c2f24fc78b8eac49d6177bcba3a69b040a68ad            49  .gitignore
-262f25a850e4e285c999f29fda0015916bd86a6cfd2bbc69b6b2901d1e981199          1601  CHANGELOG.md
-2a4ee55e9580660f6ef32479cda766f8c02f3605ca9b47694e2d81feca9773c6          1078  LICENSE
-943fde8dd908a25e0e582926d303af592c29a715bd84eb955c2d2674ae41059a          3549  PR_V2.0.0.md
-42e5242e5b55c724774b6e62a0785826cc274bf5c1067de39e464b5458fb7614          8002  README.md
-3f12fa5451d821002d857e2d5306fb2563e0036756ec4eb7091a700b36b006ef          1559  ThunderbirdMboxRecovery.sln
-24846d87e13ef4aa267825a089ff2cbc13df541133fe96fc23509eb68113223b          2473  VALIDACAO_V2.0.0.md
-b0dcf3b5feea11648cb400821abe51e8977d34e2ccc2d8c0e5fd3dab4994c7b7           618  build-portable.cmd
-467489d157b907709d8ccec0174582b35b497f49e5f7b3b1d4d53cd345451318          3786  docs/ARQUITETURA.md
-bfd45628354292919a8c35ce6d7de0f2994e5f2087ebd9a9992b5f0e158f6aaa          4575  docs/OPERACAO_TECNICA.md
-e534d980fa54673bad10711624d77b72aed4ee883b7e556e1a03119b587f8a31           765  docs/historico/ALTERACOES_V1.2.0.md
-51f5cf3ee080171f1a4ab1cf977ae5e0d99b156469e63954ae97df79e23c8c3c          1371  docs/historico/ALTERACOES_V1.3.0.md
-1eac7544a7b9d5162665e4a4f3c58594cbf168667ff7734558485af50f0b634b          1338  docs/historico/ALTERACOES_V1.4.0.md
-5fd16b3fe38067447e8a346681710ed214a593f0aa58a4c9a9690b142a171060           926  docs/historico/ANALISE_FALHA_CAIXA_VAZIA.md
-6bd22dd45fcd7108819228066b485b5cb93b6ca44d623f07c7a88b91b8dcf0b4          1251  docs/historico/ANALISE_LOG_BUILD_82101614969.md
-9cc7a31522f6a2da00df81dc141103e219aaf7608a3acdba757eacd868d332e8           959  docs/historico/CORRECAO_V1.4.0.md
-e3e0e1a761b250b9f7800f1cfde24454987c3ce70da0a9ae45a94a82114062e3          2176  docs/historico/CORRECAO_VALIDACAO_1.4.0.md
-fc9298436722e2065e293b7cbafe8617dcd2f4fdfa866523cc218ef379096bae           708  docs/historico/PR_CORRECAO_BUILD_V1.4.0.md
-ae3e7fddb5d9a0e042fc0b61e126e1ac34bc5f9e726f9fad711a9d6758083f98          1818  docs/historico/PR_V1.2.0.md
-30ea3c9178b992bc2623eae0e0f6348e4b350ea07331a4e11be31c7228f063f9          2237  docs/historico/PR_V1.3.0.md
-0a04675e4a053232c91a6967169137044f46e986d06ebae6f563ef58d970aacc          1721  docs/historico/PR_V1.4.0.md
-ad41fa7a78992ce6b1f57155645636c2496f269ddf25f01e0f82d0c0b58d763d          1375  docs/historico/PR_V1.4.0_CORRIGIDA.md
-9321ea1f0d327c5d4921c8c36634f7ac29b83f1d9726b9e384fad59034d9ba94          4973  docs/historico/ROADMAP_RECOVERY_SUITE.md
-66b8f481ed6975167d4b81ca35e688788a0cac6617f566da1e20561f143b012f          1451  docs/historico/VALIDACAO_E_LIMITACOES.md
-84aa96f48aa20d14456121b5ac5f18967f29f7da504c6f886218c701687f47fa           110  global.json
-e626fd16ba67561639da68ee33642304a569be535a37661418db80a16c1dae33          4716  scripts/Publish-Portable.ps1
-07ab3aafef95852096ebeac5937434929642753cd93e09a84c15de582d69e0c2          1202  scripts/Test-PowerShellSyntax.ps1
-d0fc5338c6ff4471891af8bd4d0d400a54281c5d0a786a0a7ec05561a1928391          4747  src/ThunderbirdMboxRecovery/Core/ArchiveService.cs
-6358ec06c8c390299274044a81648da8c58e41307ab3a7ac94f0db1bcf64f7d7          4114  src/ThunderbirdMboxRecovery/Core/ChunkWriter.cs
-00771b2881c365c63fd19dbb1fed32802bf59ec05a6bc257d3fb8430cf36c4e4          1684  src/ThunderbirdMboxRecovery/Core/MailboxNameResolver.cs
-bb8f866b5a27ed9978cb184d96840090cd46b033657b0b78a16fb1bf53e568d3         11101  src/ThunderbirdMboxRecovery/Core/MboxAnalyzer.cs
-3599a29c05ed3b98d150d28b110c93c8dd5cbb74280799688f6ab798abdb19d1         13555  src/ThunderbirdMboxRecovery/Core/MboxExtractor.cs
-825b39ac960e5ce3496136fe40e1bdf49e5b09b0f01f708a16921b59002ce4f2          7599  src/ThunderbirdMboxRecovery/Core/MboxHeaderParser.cs
-e36d0ded53fb79f9d24bdaeff8d18f991d4c60b61c04c1c18af6672b10839dee          1076  src/ThunderbirdMboxRecovery/Core/MboxSourceService.cs
-87a9af702e23f20a428ec5d31899e894d6639ebe73272dbc52d9e0a6d7b53748          1613  src/ThunderbirdMboxRecovery/Core/MboxSourceValidator.cs
-5ff59d36dacef41eb9e02102e4604735b322af6554f179613714d20c0a840673         18676  src/ThunderbirdMboxRecovery/Core/MboxSplitter.cs
-34d1d2f2d941d8a9ce1da4a1eb9194efdc325c99f3c7202f8dd3b395afa71319          6023  src/ThunderbirdMboxRecovery/Core/MboxStreamParser.cs
-9a8f281ead3a429e6f5caaff4ff2e6e5e32477299fb70357d47070951827d82a         10123  src/ThunderbirdMboxRecovery/Core/MessageRepairWriter.cs
-e35cb27927df3a2d42c83184f58d666f7a3e7780ee3fec2ef64d8c483c49455e          6444  src/ThunderbirdMboxRecovery/Core/Models.cs
-7d4c2ad8b18d9dcd0c9f141deb77d20efa40ddb53f99d197a9502ad317fda1cd          3658  src/ThunderbirdMboxRecovery/Core/MsfValidator.cs
-0a8b7c4f8f6379fbfba492052568a102173f50116c842400824fc6c098b12612          6638  src/ThunderbirdMboxRecovery/Core/ProfileBackupService.cs
-298033d59117b9d95aa442137d24d6783d9d6980d3bb5c1db39fb77f7077eb09          4827  src/ThunderbirdMboxRecovery/Core/ProfileFileClassifier.cs
-1d0b0192b23e02e1041f9ae018aff4906fa1371f0fa256e8f2c9fbb5d85497ed         12441  src/ThunderbirdMboxRecovery/Core/ProfileRestoreService.cs
-f71ff03955f1219ced8b09b4aad11cf5f9612bd50ae84442402fc832ea436c36          2378  src/ThunderbirdMboxRecovery/Core/RecoveryCoordinator.cs
-709c8883a6df67ec6d0c2753a8ef48e35c438ce6c11d87629fd7ac7d3b7243f0          1440  src/ThunderbirdMboxRecovery/Core/RecoveryLogger.cs
-2426d8f2179406ac9cfcf0a925fe03a44f7d76c8bf1d9de37f9433df6f3636cb           721  src/ThunderbirdMboxRecovery/Core/SqliteFileValidator.cs
-8e894fe12f810c04089cd9a9b11e8ad46534bd282ea60ff6182ba3d8b97221de         11761  src/ThunderbirdMboxRecovery/Core/SuiteModels.cs
-e9686e346de1e094ef2698e71d0cc5a8734b48bde38b644e8493fa126a5b0361         21794  src/ThunderbirdMboxRecovery/Core/ThunderbirdIndexService.cs
-9b1a0715bcb6a310afbd8cc44e2e5cf4b703beed931b68f95ad700a1d5263387          6583  src/ThunderbirdMboxRecovery/Core/ThunderbirdLocator.cs
-a33b395931ee76de4592b81bb5e9d742c5553c857774da9ac61ae99fc0d0bcdd         11416  src/ThunderbirdMboxRecovery/Core/ThunderbirdProfileService.cs
-302c4bad1eba2ef28e8ed887fdd16d42f44d29ffdb4a5c98b8cd77e879705604          5567  src/ThunderbirdMboxRecovery/Core/ThunderbirdUiAutomation.cs
-3329a276b0011a129c9920fa74e196f655cf85c1f38cce7fbf03bc8cf24e61ef          1338  src/ThunderbirdMboxRecovery/MainForm.cs
-ea0d9e287799d6d601e376f3e2b8635a104577e87516044b6439fc5dd121c856           691  src/ThunderbirdMboxRecovery/Program.cs
-559a6763921601e744c1fac6ce3d7222f1bbd4b9bbe0508d2424f40b4365b89c          1495  src/ThunderbirdMboxRecovery/ThunderbirdMboxRecovery.csproj
-37bfc5b564f08f5177d7c6e26aad419adcbe50da3d9151ae37b55c66aa7f29aa          9033  src/ThunderbirdMboxRecovery/UI/BackupPage.cs
-740fb65d3e07b8d590cded87eb21bdabcb335bae5938bef0396f2e743a1498f7          3465  src/ThunderbirdMboxRecovery/UI/DashboardPage.cs
-771a84293548bc592dbbe3527bae25b3686e5290a36a20a858df8c56e96f8910          3764  src/ThunderbirdMboxRecovery/UI/ExplorePage.cs
-d6d1a34fbd18d4f5a235465836d29b5e192340bca2524be97f5c33411e053747          5753  src/ThunderbirdMboxRecovery/UI/ExtractPage.cs
-388ce79f4a94f9d7cc857999239754bbacdb35c7e539cf1644ab05b4ad349cd6          6900  src/ThunderbirdMboxRecovery/UI/IndexPage.cs
-ff3a2d1ac590d681c0a198cb28da1a2375435e7596a9437b8fc8f0a554b9d11b          5506  src/ThunderbirdMboxRecovery/UI/MboxSourceControl.cs
-f6727b62b86fc93223d2514c0b1cab1d8ec40433656a036e1bb1716a3ed738f8          4474  src/ThunderbirdMboxRecovery/UI/OperationPageBase.cs
-820caab77392dcdfe480a58961c5d11d88625c7e4521ff76727449289f5b7ad6          5002  src/ThunderbirdMboxRecovery/UI/RepairPage.cs
-50fb86371342856c5602976cf738e87893f322de13f92d48db157a32c1a8d519         10068  src/ThunderbirdMboxRecovery/UI/RestorePage.cs
-6394220f9904a8523249bf49671ec41be325a6a7f7d0c28c125e901b151900cf          3211  src/ThunderbirdMboxRecovery/UI/TestPage.cs
-7f6f1e0b6a6adcc3dc8bd51deae00e1f71e1a37038e87e219678fcb0f0d79a95         16205  src/ThunderbirdMboxRecovery/app.ico
-aac75d17c43045ae086e5cdecd9a287e28522110262ff8279a7a62f17dafe742           753  src/ThunderbirdMboxRecovery/app.manifest
-c423e86fbf16128aaa125f757ad06e272d2500f7ff079b214fc380c050078e0d         13111  tests/ThunderbirdMboxRecovery.SmokeTests/Program.cs
-bf5023466b3ad6b6d40464ae3c9425a902af7a8494c2d7334d6e6d940e21df2c           568  tests/ThunderbirdMboxRecovery.SmokeTests/ThunderbirdMboxRecovery.SmokeTests.csproj
+SHA-256 | BYTES | CAMINHO RELATIVO
+038f301e3bae5715fa96a41a9b185cdce70495173eda571ad965e08d6f1e63c2 | 2634 | .github/workflows/ci.yml
+8094fcdb60ab66d5900de7363dc49b82f90b1dab31ccd360e6b3cf8565c531c6 | 6439 | .github/workflows/release.yml
+6135f9a36bdb5569e6cd9c8065c2f24fc78b8eac49d6177bcba3a69b040a68ad | 49 | .gitignore
+fd1bd380c06c1f68b59977dbb3b01aa0ea02463b4e8f67bb4f94433e6c052517 | 995 | CHANGELOG.md
+2a4ee55e9580660f6ef32479cda766f8c02f3605ca9b47694e2d81feca9773c6 | 1078 | LICENSE
+d31bc122e25f3324c344f0f97efcb5694443994fc210d55d0c7b8286de7659ab | 1933 | PR_V2.1.0.md
+bc71f06a87917063f64e291d51c0b4cd137931019ef64ad4ebc128eedad6e306 | 3977 | README.md
+3f12fa5451d821002d857e2d5306fb2563e0036756ec4eb7091a700b36b006ef | 1559 | ThunderbirdMboxRecovery.sln
+31a5b4a0eba43c2910b4e8e1eea7561444b70dde582b758c8052d2cc8fcb2e1f | 1801 | VALIDACAO_V2.1.0.md
+7c5a9941d58bfa2106b7c7a88313b2423c8c1a14aeb68641751c7ada74854056 | 375 | build-portable.cmd
+dc294f73d8bccfe04bf99501e938f6cf70b38a3d7beae9ca0db06995b4b9a1ab | 1471 | docs/ARQUITETURA.md
+e17fa22cb84222c0132ae98192417ce8214b56f3f9a77be2a371f1c5566e816e | 2562 | docs/OPERACAO_TECNICA.md
+e534d980fa54673bad10711624d77b72aed4ee883b7e556e1a03119b587f8a31 | 765 | docs/historico/ALTERACOES_V1.2.0.md
+51f5cf3ee080171f1a4ab1cf977ae5e0d99b156469e63954ae97df79e23c8c3c | 1371 | docs/historico/ALTERACOES_V1.3.0.md
+1eac7544a7b9d5162665e4a4f3c58594cbf168667ff7734558485af50f0b634b | 1338 | docs/historico/ALTERACOES_V1.4.0.md
+5fd16b3fe38067447e8a346681710ed214a593f0aa58a4c9a9690b142a171060 | 926 | docs/historico/ANALISE_FALHA_CAIXA_VAZIA.md
+6bd22dd45fcd7108819228066b485b5cb93b6ca44d623f07c7a88b91b8dcf0b4 | 1251 | docs/historico/ANALISE_LOG_BUILD_82101614969.md
+9cc7a31522f6a2da00df81dc141103e219aaf7608a3acdba757eacd868d332e8 | 959 | docs/historico/CORRECAO_V1.4.0.md
+e3e0e1a761b250b9f7800f1cfde24454987c3ce70da0a9ae45a94a82114062e3 | 2176 | docs/historico/CORRECAO_VALIDACAO_1.4.0.md
+fc9298436722e2065e293b7cbafe8617dcd2f4fdfa866523cc218ef379096bae | 708 | docs/historico/PR_CORRECAO_BUILD_V1.4.0.md
+ae3e7fddb5d9a0e042fc0b61e126e1ac34bc5f9e726f9fad711a9d6758083f98 | 1818 | docs/historico/PR_V1.2.0.md
+30ea3c9178b992bc2623eae0e0f6348e4b350ea07331a4e11be31c7228f063f9 | 2237 | docs/historico/PR_V1.3.0.md
+0a04675e4a053232c91a6967169137044f46e986d06ebae6f563ef58d970aacc | 1721 | docs/historico/PR_V1.4.0.md
+ad41fa7a78992ce6b1f57155645636c2496f269ddf25f01e0f82d0c0b58d763d | 1375 | docs/historico/PR_V1.4.0_CORRIGIDA.md
+9321ea1f0d327c5d4921c8c36634f7ac29b83f1d9726b9e384fad59034d9ba94 | 4973 | docs/historico/ROADMAP_RECOVERY_SUITE.md
+66b8f481ed6975167d4b81ca35e688788a0cac6617f566da1e20561f143b012f | 1451 | docs/historico/VALIDACAO_E_LIMITACOES.md
+84aa96f48aa20d14456121b5ac5f18967f29f7da504c6f886218c701687f47fa | 110 | global.json
+3594ba6bda72c0f7aefc14647c00848105ac30b6b6aec65adf3fbc047a54d3fb | 11209 | scripts/Publish-Portable.ps1
+07ab3aafef95852096ebeac5937434929642753cd93e09a84c15de582d69e0c2 | 1202 | scripts/Test-PowerShellSyntax.ps1
+c9bc03b0f1ae85b4308bd5b743e96fc7c3ffbad8121aeafd829916ee958a92eb | 5278 | src/ThunderbirdMboxRecovery/AboutForm.cs
+d0fc5338c6ff4471891af8bd4d0d400a54281c5d0a786a0a7ec05561a1928391 | 4747 | src/ThunderbirdMboxRecovery/Core/ArchiveService.cs
+6358ec06c8c390299274044a81648da8c58e41307ab3a7ac94f0db1bcf64f7d7 | 4114 | src/ThunderbirdMboxRecovery/Core/ChunkWriter.cs
+92e0cbc4f8e1c36af5d62af24d13ccf52bca682f2a2c9019fc8cde680497de60 | 1466 | src/ThunderbirdMboxRecovery/Core/DevBranding.cs
+00771b2881c365c63fd19dbb1fed32802bf59ec05a6bc257d3fb8430cf36c4e4 | 1684 | src/ThunderbirdMboxRecovery/Core/MailboxNameResolver.cs
+bb8f866b5a27ed9978cb184d96840090cd46b033657b0b78a16fb1bf53e568d3 | 11101 | src/ThunderbirdMboxRecovery/Core/MboxAnalyzer.cs
+3599a29c05ed3b98d150d28b110c93c8dd5cbb74280799688f6ab798abdb19d1 | 13555 | src/ThunderbirdMboxRecovery/Core/MboxExtractor.cs
+825b39ac960e5ce3496136fe40e1bdf49e5b09b0f01f708a16921b59002ce4f2 | 7599 | src/ThunderbirdMboxRecovery/Core/MboxHeaderParser.cs
+e36d0ded53fb79f9d24bdaeff8d18f991d4c60b61c04c1c18af6672b10839dee | 1076 | src/ThunderbirdMboxRecovery/Core/MboxSourceService.cs
+87a9af702e23f20a428ec5d31899e894d6639ebe73272dbc52d9e0a6d7b53748 | 1613 | src/ThunderbirdMboxRecovery/Core/MboxSourceValidator.cs
+5ff59d36dacef41eb9e02102e4604735b322af6554f179613714d20c0a840673 | 18676 | src/ThunderbirdMboxRecovery/Core/MboxSplitter.cs
+34d1d2f2d941d8a9ce1da4a1eb9194efdc325c99f3c7202f8dd3b395afa71319 | 6023 | src/ThunderbirdMboxRecovery/Core/MboxStreamParser.cs
+9a8f281ead3a429e6f5caaff4ff2e6e5e32477299fb70357d47070951827d82a | 10123 | src/ThunderbirdMboxRecovery/Core/MessageRepairWriter.cs
+7cd6602d2704ded435e9a7cceffbfee739d503e412a829ff8c2dd3e702b11b45 | 6444 | src/ThunderbirdMboxRecovery/Core/Models.cs
+7d4c2ad8b18d9dcd0c9f141deb77d20efa40ddb53f99d197a9502ad317fda1cd | 3658 | src/ThunderbirdMboxRecovery/Core/MsfValidator.cs
+97ee5544e4e245504284e12aa7785677767a886d5e69c97568e64a4424393228 | 13328 | src/ThunderbirdMboxRecovery/Core/ProfileBackupService.cs
+298033d59117b9d95aa442137d24d6783d9d6980d3bb5c1db39fb77f7077eb09 | 4827 | src/ThunderbirdMboxRecovery/Core/ProfileFileClassifier.cs
+4c2d64877523a9ed7bbe234903cbf842d522f239de03550a33aa25b8c15d14fd | 10899 | src/ThunderbirdMboxRecovery/Core/ProfileRestoreService.cs
+f71ff03955f1219ced8b09b4aad11cf5f9612bd50ae84442402fc832ea436c36 | 2378 | src/ThunderbirdMboxRecovery/Core/RecoveryCoordinator.cs
+709c8883a6df67ec6d0c2753a8ef48e35c438ce6c11d87629fd7ac7d3b7243f0 | 1440 | src/ThunderbirdMboxRecovery/Core/RecoveryLogger.cs
+2426d8f2179406ac9cfcf0a925fe03a44f7d76c8bf1d9de37f9433df6f3636cb | 721 | src/ThunderbirdMboxRecovery/Core/SqliteFileValidator.cs
+d4665fd9c47a4e52b0e1be1a91eb35e923cbd591b96ec1ba0849cc2b6d7fe507 | 12380 | src/ThunderbirdMboxRecovery/Core/SuiteModels.cs
+e9686e346de1e094ef2698e71d0cc5a8734b48bde38b644e8493fa126a5b0361 | 21794 | src/ThunderbirdMboxRecovery/Core/ThunderbirdIndexService.cs
+9b1a0715bcb6a310afbd8cc44e2e5cf4b703beed931b68f95ad700a1d5263387 | 6583 | src/ThunderbirdMboxRecovery/Core/ThunderbirdLocator.cs
+a33b395931ee76de4592b81bb5e9d742c5553c857774da9ac61ae99fc0d0bcdd | 11416 | src/ThunderbirdMboxRecovery/Core/ThunderbirdProfileService.cs
+302c4bad1eba2ef28e8ed887fdd16d42f44d29ffdb4a5c98b8cd77e879705604 | 5567 | src/ThunderbirdMboxRecovery/Core/ThunderbirdUiAutomation.cs
+4e17d2b854b78337775fb53cf7d19e722b386050b68597ac80d6e6f01c4dbd9e | 175 | src/ThunderbirdMboxRecovery/GlobalUsings.cs
+c3d0a1ec3cb87d9f32819abaa314e9a5f99637f65947f95078d2f84707b51383 | 2367 | src/ThunderbirdMboxRecovery/MainForm.cs
+db9b33593b9f8b0cd63d2e39224fd2c8911784fd3424bf2d2c789e1c09b7dcee | 1082 | src/ThunderbirdMboxRecovery/Program.cs
+ffdd4fec74c212ec1fb95b0b1f02305324557ee57a4972e245ffe6c49ed3a624 | 14759 | src/ThunderbirdMboxRecovery/Resources/wwsoftwares-dev-logo.png
+546c22232f3871365b06fb07a777cebd893af3fdd87e9b8a21535fea30689f81 | 3170 | src/ThunderbirdMboxRecovery/SplashForm.cs
+5537bafc2864baddcf55f1ac2a91021a54ae9e979e89a57fa1f8f0ac30d07779 | 1621 | src/ThunderbirdMboxRecovery/ThunderbirdMboxRecovery.csproj
+95710a81a1a2183b46f7198b9e834c898dd63189e883a3297a92a4a48765e9c6 | 11819 | src/ThunderbirdMboxRecovery/UI/BackupPage.cs
+740fb65d3e07b8d590cded87eb21bdabcb335bae5938bef0396f2e743a1498f7 | 3465 | src/ThunderbirdMboxRecovery/UI/DashboardPage.cs
+c42b7e5704217f330e10fa87864a90fcddcb5c745aa7ee72d8f678733ed82ec5 | 10319 | src/ThunderbirdMboxRecovery/UI/ExplorePage.cs
+d6d1a34fbd18d4f5a235465836d29b5e192340bca2524be97f5c33411e053747 | 5753 | src/ThunderbirdMboxRecovery/UI/ExtractPage.cs
+388ce79f4a94f9d7cc857999239754bbacdb35c7e539cf1644ab05b4ad349cd6 | 6900 | src/ThunderbirdMboxRecovery/UI/IndexPage.cs
+ff3a2d1ac590d681c0a198cb28da1a2375435e7596a9437b8fc8f0a554b9d11b | 5506 | src/ThunderbirdMboxRecovery/UI/MboxSourceControl.cs
+f6727b62b86fc93223d2514c0b1cab1d8ec40433656a036e1bb1716a3ed738f8 | 4474 | src/ThunderbirdMboxRecovery/UI/OperationPageBase.cs
+820caab77392dcdfe480a58961c5d11d88625c7e4521ff76727449289f5b7ad6 | 5002 | src/ThunderbirdMboxRecovery/UI/RepairPage.cs
+04257c72e1bfcaf9b915ce70c3a4d1a2a843ed0843aa42d7b8846dd60338cc44 | 15422 | src/ThunderbirdMboxRecovery/UI/RestorePage.cs
+6394220f9904a8523249bf49671ec41be325a6a7f7d0c28c125e901b151900cf | 3211 | src/ThunderbirdMboxRecovery/UI/TestPage.cs
+7f6f1e0b6a6adcc3dc8bd51deae00e1f71e1a37038e87e219678fcb0f0d79a95 | 16205 | src/ThunderbirdMboxRecovery/app.ico
+aac75d17c43045ae086e5cdecd9a287e28522110262ff8279a7a62f17dafe742 | 753 | src/ThunderbirdMboxRecovery/app.manifest
+be1927a910f06d2dd229880a2cb1148e656c8f718258f281ff39fcb79e2eb75c | 15873 | tests/ThunderbirdMboxRecovery.SmokeTests/Program.cs
+bf5023466b3ad6b6d40464ae3c9425a902af7a8494c2d7334d6e6d940e21df2c | 568 | tests/ThunderbirdMboxRecovery.SmokeTests/ThunderbirdMboxRecovery.SmokeTests.csproj

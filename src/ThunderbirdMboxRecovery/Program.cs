@@ -11,6 +11,17 @@ internal static class Program
             MessageBox.Show(args.Exception.ToString(), "Erro inesperado", MessageBoxButtons.OK, MessageBoxIcon.Error);
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             MessageBox.Show(args.ExceptionObject?.ToString() ?? "Erro desconhecido.", "Erro inesperado", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        Application.Run(new MainForm());
+
+        using var splash = new SplashForm();
+        splash.Show();
+        splash.UpdateStatus("Carregando módulos de recuperação...");
+        Thread.Sleep(250);
+        splash.UpdateStatus("Validando ambiente Windows...");
+        Thread.Sleep(200);
+        var mainForm = new MainForm();
+        splash.UpdateStatus("Interface pronta.");
+        Thread.Sleep(200);
+        splash.Close();
+        Application.Run(mainForm);
     }
 }

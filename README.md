@@ -1,153 +1,112 @@
-# Thunderbird Recovery Suite 2.0
+# Thunderbird Recovery Suite 2.1
 
-Aplicação portátil para Windows que reúne diagnóstico, exploração, reparo, extração, indexação assistida, backup e restauração de caixas e perfis do Mozilla Thunderbird.
+Aplicação Windows portátil para explorar, diagnosticar, reparar, extrair, indexar, fazer backup e restaurar caixas MBOX e perfis do Mozilla Thunderbird.
 
-A suíte trabalha sem alterar a origem: arquivos MBOX são abertos somente para leitura, as saídas são criadas em diretórios separados e operações críticas utilizam arquivos temporários antes da confirmação final.
+## Desenvolvedor
 
-## Recursos integrados
+- **WWSoftware's Sistemas e Tecnologias**
+- **Wallace Kleiton**
+- GitHub: **@wkarts**
+- WhatsApp: **+55 75 98844-9231**
+- E-mail: **wkarts@gmail.com**
 
-### Visão geral
+A logomarca incorporada ao splash screen e à janela Sobre identifica o desenvolvedor.
 
-- Detecta instalações do Thunderbird nos registros, `Program Files` e `LocalAppData`.
-- Identifica versão e arquitetura `x86`, `x64` ou `ARM64` do executável PE.
-- Localiza perfis pelo `profiles.ini` e pela pasta `Profiles`.
-- Exibe tamanho estimado dos perfis e identifica o perfil marcado como padrão.
+## Principais módulos
 
-### Explorar e testar
+### Explorar MBOX
 
-- Abre MBOX direto, com ou sem extensão, ou uma entrada MBOX dentro de `.7z`, `.zip`, `.rar`, `.tar`, `.gz`, `.bz2` e `.xz`.
-- Processa o conteúdo em fluxo, sem carregar integralmente caixas com dezenas de gigabytes.
-- Lista assunto, remetente, destinatário, data, `Message-ID`, offsets, tamanho, flags Mozilla, exclusão e indicação de anexo.
-- Calcula SHA-256 da origem.
-- Detecta separadores inválidos, prefixo não reconhecido, `Message-ID` duplicado, cabeçalho sem terminador e status Mozilla malformado.
-- Exporta inventário e diagnóstico em JSON e CSV.
+- Abre `Inbox`, `Sent`, `Drafts`, `Trash`, `Archives`, pastas personalizadas e arquivos `.mbox`.
+- Aceita arquivos descompactados sem extensão ou entradas dentro de arquivos compactados.
+- Lista número, data, remetente, destinatário, assunto, status, anexo, tamanho, Message-ID e offset.
+- Permite seleção múltipla na grade.
+- Extrai uma mensagem selecionada, várias selecionadas ou todas as mensagens para EML.
+- Exporta inventário em CSV e JSON.
 
-### Reparar
+### Diagnosticar e reparar
 
-- Reconstrói o MBOX em uma saída nova.
-- Saída única é o padrão; fracionamento é opcional e ocorre somente entre mensagens completas.
-- Normaliza `X-Mozilla-Status` e `X-Mozilla-Status2`.
-- Pode remover `Expunged` e `IMAPDeleted`, recuperando mensagens que ainda permanecem fisicamente no arquivo.
-- Preserva flags independentes, como lida, respondida, encaminhada e marcada.
-- Gera manifesto, hashes SHA-256, instruções de importação e log técnico.
-- Não fabrica `.msf` vazio ou incompatível.
+- Processamento em fluxo para caixas grandes.
+- Detecção de estrutura MBOX, cabeçalhos, separadores, status Mozilla e mensagens excluídas.
+- Reconstrução em arquivo único por padrão.
+- Fracionamento opcional somente entre mensagens completas.
+- Recuperação opcional de mensagens `Expunged` e `IMAPDeleted` ainda presentes fisicamente.
+- Normalização de `X-Mozilla-Status` e `X-Mozilla-Status2`.
+- Logs, manifestos e SHA-256.
 
-### Extrair EML
+### Indexar MSF
 
-- Extrai mensagens individuais para `.eml`.
-- Filtra por assunto, remetente, destinatário, período, presença de anexo e estado de exclusão.
-- Permite preservar ou remover cabeçalhos internos Mozilla.
-- Gera índice CSV dos itens exportados.
+- Detecta Thunderbird instalado, versão e arquitetura.
+- Cria perfil temporário isolado.
+- Solicita ao próprio Thunderbird a geração do índice `.msf`.
+- Valida estrutura Mork e acompanha a contagem de mensagens.
+- Mantém fallback prospectivo para Panorama/SQLite.
 
-### Indexar com o Thunderbird real
+### Backup
 
-- Usa uma instalação real do Thunderbird encontrada no computador.
-- Cria um perfil temporário e isolado.
-- Copia o MBOX para `Mail/Local Folders`.
-- Inicia uma instância separada com `-profile`, `-new-instance` e `-no-remote`.
-- Tenta selecionar a pasta por Windows UI Automation; se a automação não conseguir, solicita apenas a seleção manual da pasta na janela isolada.
-- Mantém `mail.panorama.enabled=false` no perfil temporário para solicitar a geração tradicional de `.msf` quando essa preferência for reconhecida pela versão instalada.
-- Monitora tamanho, data de gravação e estabilidade do índice.
-- Valida assinatura Mork e tenta comparar `numMsgs` com a contagem estrutural do MBOX.
-- Quando houver divergência estável de contagem, aguarda um período adicional antes de concluir com aviso.
-- Mantém detecção de `panorama.sqlite` como compatibilidade prospectiva quando a instalação ignorar ou substituir o fluxo Mork.
-- Entrega o par MBOX/`.msf` realmente produzido pelo Thunderbird, ou preserva o banco Panorama quando não existir um `.msf` autônomo.
+- Completo, somente mensagens ou seletivo.
+- Formatos:
+  - ZIP, para maior compatibilidade;
+  - 7Z/LZMA2, para maior compressão.
+- SHA-256 por arquivo e do pacote final.
+- Manifesto interno.
+- Bloqueio de perfil aberto por padrão.
 
-### Backup de perfil
+### Restauração
 
-- Modos completo, somente mensagens ou seletivo.
-- Seleção de `Mail`, `ImapMail/News`, preferências, catálogos, calendários, credenciais/certificados, extensões, índices e caches.
-- Bloqueia por padrão backup de perfil em uso; existe uma substituição explícita para atendimento emergencial, registrada no manifesto.
-- ZIP gravado inicialmente como `.partial` e confirmado somente após conclusão.
-- Manifesto interno com caminho, tamanho, data e SHA-256 por arquivo.
-- SHA-256 do pacote e arquivo `.sha256` lateral.
+- Completa, somente mensagens ou seletiva.
+- Suporta ZIP, 7Z e demais formatos de leitura aceitos pela biblioteca.
+- Validação de hashes e proteção contra path traversal.
+- Restauração sobre perfil vazio ou existente.
+- Sobre perfil existente exige:
+  - confirmação de compreensão dos riscos;
+  - digitação de `RESTAURAR`;
+  - confirmação crítica adicional;
+  - confirmação extra quando o backup de segurança estiver desativado.
+- Backup de segurança opcional em ZIP ou 7Z antes da alteração.
+- Sobrescrita opcional; arquivos fora do backup não são apagados automaticamente.
 
-### Restaurar perfil
+## Interface institucional
 
-- Restaura ZIPs da suíte e arquivos compatíveis com SharpCompress: `.7z`, `.zip`, `.rar`, `.tar`, `.gz`, `.bz2` e `.xz`.
-- Suporta restauração completa, somente mensagens ou seletiva.
-- Aceita senha para arquivos compactados protegidos.
-- Reconhece perfil na raiz, em `profile/` ou dentro de uma pasta superior única.
-- Bloqueia caminhos absolutos e travessia de diretórios.
-- Restaura por arquivos temporários e valida SHA-256 quando existe manifesto.
-- Pode criar backup de segurança do destino.
-- Pode registrar o perfil restaurado no `profiles.ini`, mantendo cópia de segurança do arquivo anterior.
-- Pode marcar o perfil como padrão no `profiles.ini`; isso não altera configurações externas específicas de instalação que eventualmente existam em `installs.ini`.
+- Splash screen com versão, arquitetura e identificação do desenvolvedor.
+- Janela Sobre com logomarca, versão e contatos.
+- Botões para GitHub, WhatsApp, e-mail e cópia dos contatos.
 
-## Formatos e tecnologias
+## Artefatos de release
 
-- Mensagens: MBOX/Berkeley e arquivos sem extensão do Thunderbird.
-- Compactação para leitura: 7z, ZIP, RAR, TAR, GZip, BZip2 e XZ.
-- Backup nativo: ZIP.
-- Índice tradicional: `.msf`/Mork criado pelo Thunderbird instalado.
-- Compatibilidade prospectiva: detecção de `panorama.sqlite`.
-- Runtime: .NET 8 Windows Desktop.
-- Interface: Windows Forms e Windows UI Automation.
-- Distribuição: executáveis self-contained, single-file, separados para `win-x86` e `win-x64`.
+Para cada arquitetura `win-x86` e `win-x64`, o workflow gera:
 
-## Segurança operacional
+- executável portátil self-contained;
+- pacote ZIP;
+- pacote 7Z;
+- executável menor `runtime-required`, que exige o .NET 8 Desktop Runtime;
+- pacotes ZIP e 7Z da variante `runtime-required`;
+- hashes SHA-256.
 
-1. Preserve o backup original e trabalhe em uma cópia.
-2. Feche o Thunderbird antes de substituir caixas, restaurar perfis ou registrar um perfil.
-3. Não compacte uma caixa suspeita antes de concluir a recuperação.
-4. Valide hashes e manifestos antes de substituir dados de produção.
-5. Teste o resultado em perfil isolado.
-6. Em backup de perfil aberto, use a substituição emergencial somente quando não for possível interromper o Thunderbird e registre essa condição no atendimento.
+A compactação UPX existe como opção no script, mas permanece desativada por padrão porque executáveis .NET self-contained podem apresentar incompatibilidades ou alertas de antivírus após esse tipo de empacotamento.
 
 ## Compilação local
 
 Requisitos:
 
-- Windows 10/11 ou Windows Server compatível.
-- SDK .NET 8 x64.
-- PowerShell 7 recomendado.
+- Windows 10 ou superior;
+- PowerShell 7;
+- SDK .NET 8;
+- 7-Zip para gerar pacotes `.7z`.
 
 ```powershell
-pwsh ./scripts/Test-PowerShellSyntax.ps1
-
-dotnet restore ThunderbirdMboxRecovery.sln `
-  -p:SelfContained=false `
-  -p:PublishSingleFile=false
-
-dotnet build ThunderbirdMboxRecovery.sln `
-  -c Release `
-  --no-restore `
-  -p:SelfContained=false `
-  -p:PublishSingleFile=false `
-  -warnaserror
-
-dotnet run `
-  --project tests/ThunderbirdMboxRecovery.SmokeTests/ThunderbirdMboxRecovery.SmokeTests.csproj `
-  -c Release `
-  --no-build
-
-pwsh ./scripts/Publish-Portable.ps1 -Version 2.0.0
+pwsh ./scripts/Publish-Portable.ps1 -Version 2.1.0
 ```
 
-## GitHub Actions e releases
+Para tentar gerar uma variante UPX quando o `upx.exe` já estiver instalado:
 
-- Pull Request: valida sintaxe PowerShell, SDK .NET 8, build com warnings como erro, smoke tests e publicação temporária `win-x86`/`win-x64` dentro do runner.
-- Merge em `main` ou `master`: cria tag e release novas no padrão `v2.0.<GITHUB_RUN_NUMBER>`.
-- Releases são imutáveis: não há tag `continuous`, movimentação de tag ou `--clobber`.
-- A publicação envia os binários diretamente para GitHub Releases, sem depender de `actions/upload-artifact`.
-
-Arquivos esperados:
-
-```text
-ThunderbirdRecoverySuite-v2.0.123-win-x86.exe
-ThunderbirdRecoverySuite-v2.0.123-win-x64.exe
-ThunderbirdRecoverySuite-v2.0.123-win-x86.zip
-ThunderbirdRecoverySuite-v2.0.123-win-x64.zip
-SHA256SUMS.txt
-VERSION.txt
+```powershell
+pwsh ./scripts/Publish-Portable.ps1 -Version 2.1.0 -EnableUpx $true
 ```
 
-## Limitações conhecidas
+## CI e releases
 
-- Bytes fisicamente truncados, sobrescritos ou ausentes não podem ser recriados.
-- A detecção de anexos se baseia em cabeçalhos MIME e pode ser incompleta em mensagens severamente danificadas.
-- A contagem `numMsgs` do Mork é uma validação auxiliar; o manifesto preserva também a contagem estrutural do MBOX.
-- A automação de interface depende da árvore de acessibilidade exposta pela versão, idioma e tema do Thunderbird; existe fallback de seleção manual.
-- Panorama continua em evolução. A suíte prioriza `.msf` no perfil isolado e preserva `panorama.sqlite` quando a instalação operar de forma diferente.
-- A criação do índice exige uma instalação funcional do Thunderbird e pode levar horas em caixas muito grandes.
-- Marcar `Default=1` no `profiles.ini` não garante substituir associações específicas já registradas em `installs.ini` por determinadas instalações do Thunderbird.
+- Pull Requests: sintaxe PowerShell, restore, build, smoke tests e validação de grafos x86/x64.
+- Merge em `main` ou `master`: cria release nova e imutável `v2.1.<GITHUB_RUN_NUMBER>`.
+- Não utiliza release `continuous`.
+- Não move tags antigas.
+- Não substitui assets anteriores.
