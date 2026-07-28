@@ -7,7 +7,6 @@ internal sealed class ChunkWriter : IDisposable
     private readonly string _outputDirectory;
     private readonly long _targetSize;
     private readonly bool _splitOutput;
-    private readonly bool _createMsfPlaceholder;
     private readonly RecoveryLogger _logger;
     private readonly string _mailboxName;
     private readonly List<ChunkManifest> _parts = [];
@@ -22,7 +21,6 @@ internal sealed class ChunkWriter : IDisposable
 
     public IReadOnlyList<ChunkManifest> Parts => _parts;
     public int CompletedParts => _parts.Count;
-    public long CurrentMessages => _messages;
     public string? CurrentFileName => _finalPath is null ? null : Path.GetFileName(_finalPath);
 
     public ChunkWriter(
@@ -30,14 +28,12 @@ internal sealed class ChunkWriter : IDisposable
         long targetSize,
         string mailboxName,
         bool splitOutput,
-        bool createMsfPlaceholder,
         RecoveryLogger logger)
     {
         _outputDirectory = outputDirectory;
         _targetSize = targetSize;
         _mailboxName = MailboxNameResolver.FromSource(mailboxName);
         _splitOutput = splitOutput;
-        _createMsfPlaceholder = createMsfPlaceholder;
         _logger = logger;
     }
 
@@ -77,6 +73,7 @@ internal sealed class ChunkWriter : IDisposable
     public void Abort()
     {
         if (_stream is null) return;
+
         try
         {
             _stream.Flush(true);
@@ -85,6 +82,7 @@ internal sealed class ChunkWriter : IDisposable
         {
             // Preserva a exceção original da recuperação.
         }
+
         _stream.Dispose();
         _stream = null;
         _hash?.Dispose();
@@ -116,7 +114,8 @@ internal sealed class ChunkWriter : IDisposable
 
     private void FinalizeCurrent()
     {
-        if (_stream is null || _hash is null || _partialPath is null || _finalPath is null) return;
+        if (_stream is null || _hash is null || _partialPath is null || _finalPath is null)
+            return;
 
         _stream.Flush(true);
         _stream.Dispose();
@@ -128,23 +127,17 @@ internal sealed class ChunkWriter : IDisposable
 
         File.Move(_partialPath, _finalPath, false);
 
-        string? indexFileName = null;
-        if (_createMsfPlaceholder)
-        {
-            var msfPath = MsfIndexService.CreateRebuildPlaceholder(_finalPath);
-            indexFileName = Path.GetFileName(msfPath);
-            _logger.Info($"Arquivo de reconstrução do índice criado: {indexFileName}. O Thunderbird preencherá o .msf ao abrir a caixa.");
-        }
-
         _parts.Add(new ChunkManifest
         {
             FileName = Path.GetFileName(_finalPath),
             SizeBytes = _size,
             EstimatedMessages = _messages,
-            Sha256 = hash,
-            IndexFileName = indexFileName
+            Sha256 = hash
         });
-        _logger.Info($"Arquivo concluído: {Path.GetFileName(_finalPath)} | {SizeFormatter.Format(_size)} | {_messages:N0} mensagens estimadas.");
+
+        _logger.Info(
+            $"Arquivo concluído: {Path.GetFileName(_finalPath)} | " +
+            $"{SizeFormatter.Format(_size)} | {_messages:N0} mensagens estimadas.");
 
         _partialPath = null;
         _finalPath = null;
@@ -154,6 +147,7 @@ internal sealed class ChunkWriter : IDisposable
 
     public void Dispose()
     {
-        if (!_completed) Abort();
+        if (!_completed)
+            Abort();
     }
 }

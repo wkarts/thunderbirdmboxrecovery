@@ -10,6 +10,7 @@ permissions:
 jobs:
   validate:
     runs-on: windows-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -20,14 +21,44 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          ./scripts/Test-PowerShellSyntax.ps1 -Paths @(
+            "./scripts/Publish-Portable.ps1",
+            "./scripts/Test-PowerShellSyntax.ps1"
+          )
+
       - name: Restore and build solution
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+
           dotnet restore ThunderbirdMboxRecovery.sln
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falha no restore da solução."
+          }
+
           dotnet build ThunderbirdMboxRecovery.sln `
             -c Release `
             --no-restore `
             -warnaserror
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falha no build da solução."
+          }
+
+      - name: Run recovery smoke tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          dotnet run `
+            --project tests/ThunderbirdMboxRecovery.SmokeTests/ThunderbirdMboxRecovery.SmokeTests.csproj `
+            -c Release `
+            --no-build
+          if ($LASTEXITCODE -ne 0) {
+            throw "Os smoke tests da recuperação falharam."
+          }
 
       - name: Validate portable x86 and x64 publication
         shell: pwsh

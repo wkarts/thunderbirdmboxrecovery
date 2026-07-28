@@ -24,6 +24,14 @@ $outputRoot = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
     Join-Path $repositoryRoot $OutputDirectory
 }
 
+$repositoryRootFull = [System.IO.Path]::GetFullPath($repositoryRoot)
+$outputRoot = [System.IO.Path]::GetFullPath($outputRoot)
+
+if ($outputRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar) -eq
+    $repositoryRootFull.TrimEnd([System.IO.Path]::DirectorySeparatorChar)) {
+    throw "A pasta de saída não pode ser a raiz do repositório."
+}
+
 if (Test-Path $outputRoot) {
     Remove-Item $outputRoot -Recurse -Force
 }
@@ -115,7 +123,7 @@ $checksumLines = foreach ($file in $checksumFiles) {
 $checksumsPath = Join-Path $outputRoot "SHA256SUMS.txt"
 $checksumLines | Set-Content $checksumsPath -Encoding ascii
 
-Write-Host "Arquivos finais da versão $Version:"
+Write-Host "Arquivos finais da versão ${Version}:"
 Get-ChildItem $outputRoot -File | Sort-Object Name | ForEach-Object {
     Write-Host ("- {0} ({1:N2} MiB)" -f $_.Name, ($_.Length / 1MB))
 }

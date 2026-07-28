@@ -1,77 +1,28 @@
-# Operação técnica de recuperação
+# Operação técnica — versão 1.3.0 corrigida
 
-## Escolha do executável
+## Origem aceita
 
-Use `win-x64` em Windows 10/11 de 64 bits. Use `win-x86` somente quando o Windows for realmente 32 bits.
+- arquivos MBOX sem extensão: `Inbox`, `Sent`, `Drafts`, `Trash`, `Archives` e pastas personalizadas;
+- arquivos `.mbox` exportados;
+- entrada selecionada dentro de `.7z`, `.zip`, `.rar`, `.tar`, `.gz`, `.bz2` ou `.xz`.
 
-## Espaço necessário
+Não selecione `.msf`, `global-messages-db.sqlite`, `prefs.js` ou outros arquivos auxiliares.
 
-Para uma Inbox descompactada de 28 GiB, reserve pelo menos 31 GiB livres no destino. O backup original deve permanecer em outra pasta ou unidade sempre que possível.
+## Procedimento
 
-## Saída
+1. Trabalhe sempre sobre uma cópia do backup.
+2. Prefira destino NTFS ou exFAT.
+3. Deixe o fracionamento desmarcado para obter um único MBOX; marque somente quando necessário.
+4. Aguarde a finalização e confira `manifesto_recuperacao.json`, `recuperacao.log` e os hashes.
+5. Feche o Thunderbird e confirme que `thunderbird.exe` não está em execução.
+6. Copie o MBOX para `Mail\\Local Folders\\` de um perfil de recuperação.
+7. Remova somente um `.msf` antigo de mesmo nome, caso exista.
+8. Abra o Thunderbird e aguarde. Em caixa de dezenas de gigabytes, a reconstrução do `.msf` pode levar bastante tempo e bloquear o comando **Reparar pasta**.
 
-Cada execução cria uma pasta exclusiva:
+## Validação prática da 1.2.0
 
-```text
-Recuperacao_<NomeDaCaixa>_20260727_153000\
-├── <NomeDaCaixa>_Recuperada
-├── <NomeDaCaixa>_Recuperada.msf
-├── manifesto_recuperacao.json
-├── recuperacao.log
-└── COMO_IMPORTAR_NO_THUNDERBIRD.txt
-```
-
-Quando o fracionamento for habilitado, serão gerados `<NomeDaCaixa>_Recuperada_001`, `_002` e seus respectivos `.msf`.
-
-Arquivos MBOX válidos são gerados sem extensão. Arquivos `.partial` indicam cancelamento ou falha e não devem ser importados.
-
-## Importação
-
-Com o Thunderbird fechado, copie o MBOX recuperado ou suas partes válidas para:
-
-```text
-<perfil>\Mail\Local Folders\
-```
-
-Copie também os `.msf` gerados e abra o Thunderbird. Os índices vazios serão reconstruídos a partir dos MBOX.
+Foi observado em uso real que o Thunderbird reconstruiu sozinho o `.msf` de uma caixa recuperada de aproximadamente 27,4 GiB após permanecer aberto e processando a pasta por algum tempo. A pasta inicialmente aparecia ocupada e a lista de mensagens não era exibida. Portanto, não se deve concluir imediatamente que a recuperação falhou nem acionar repetidamente **Reparar pasta** enquanto outra operação estiver usando a caixa.
 
 ## Limites
 
-A ferramenta recupera mensagens cujos separadores MBOX ainda podem ser reconhecidos. Ela não recria bytes que tenham sido sobrescritos, truncados ou removidos antes da criação do backup.
-
-## Tipo de reparo realizado
-
-A aplicação reconstrói a estrutura utilizável da caixa MBOX em um arquivo único por padrão, ou em arquivos menores quando o fracionamento for habilitado. Ela procura os delimitadores de início das mensagens que ainda estão presentes e copia o conteúdo correspondente para novas caixas, sem modificar a origem.
-
-Esse processo é apropriado para Inbox excessivamente grande, índice `.msf` inconsistente e corrupção localizada. Não é possível reconstruir dados que já tenham sido fisicamente sobrescritos, truncados ou removidos do backup.
-
-## Distribuição e versionamento dos binários
-
-Os workflows não utilizam `actions/upload-artifact`. Os executáveis e pacotes são enviados diretamente para GitHub Releases.
-
-Cada atualização da branch principal cria uma versão nova e imutável no formato:
-
-```text
-v<MAJOR>.<MINOR>.<GITHUB_RUN_NUMBER>
-```
-
-Exemplo:
-
-```text
-v1.3.27
-ThunderbirdMboxRecovery-v1.3.27-win-x64.exe
-ThunderbirdMboxRecovery-v1.3.27-win-x86.exe
-```
-
-Não existe release móvel `continuous`. O workflow não move tags, não usa `--clobber`, não apaga versões anteriores e falha caso a tag calculada já exista. Isso mantém todo o histórico de releases e evita a cota compartilhada de armazenamento de artifacts do GitHub Actions.
-
-
-## Modo de saída
-
-- **Padrão:** arquivo único, sem fracionamento.
-- **Opcional:** marcar “Fracionar o arquivo recuperado” e definir o tamanho de cada parte.
-- O corte ocorre somente no início de uma nova mensagem MBOX.
-
-## Arquivo `.msf`
-
-Por padrão, o aplicativo cria um `.msf` vazio ao lado de cada MBOX recuperado. Esse arquivo não contém mensagens e não tenta reproduzir internamente o banco Mork do Thunderbird. Ele serve para indicar a necessidade de reconstrução; o Thunderbird gera o índice real ao abrir a pasta. Se houver falha de exibição, feche o Thunderbird, exclua somente o `.msf` e abra novamente.
+A linha 1.3 não remove flags lógicas de exclusão. Use a linha 1.4 para recuperar mensagens marcadas como expurgadas ou excluídas no IMAP que ainda estejam fisicamente presentes no MBOX.
