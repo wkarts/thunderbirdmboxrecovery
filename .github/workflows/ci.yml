@@ -74,45 +74,20 @@ jobs:
             throw "Os smoke tests integrados falharam."
           }
 
-      - name: Validate portable x86 and x64 publication
+      - name: Validate x86 and x64 restore graphs
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
           $project = "src/ThunderbirdMboxRecovery/ThunderbirdMboxRecovery.csproj"
 
           foreach ($rid in @("win-x86", "win-x64")) {
-            $output = Join-Path $env:RUNNER_TEMP $rid
-
             dotnet restore $project `
               -r $rid `
               -p:SelfContained=true `
               -p:PublishSingleFile=true
             if ($LASTEXITCODE -ne 0) {
-              throw "Falha no restore para $rid."
+              throw "Falha ao validar o grafo de dependências para $rid."
             }
 
-            dotnet publish $project `
-              -c Release `
-              -r $rid `
-              --self-contained true `
-              --no-restore `
-              -p:PublishSingleFile=true `
-              -p:IncludeNativeLibrariesForSelfExtract=true `
-              -p:PublishTrimmed=false `
-              -o $output
-            if ($LASTEXITCODE -ne 0) {
-              throw "Falha no publish para $rid."
-            }
-
-            $exe = Join-Path $output "ThunderbirdRecoverySuite.exe"
-            if (-not (Test-Path $exe -PathType Leaf)) {
-              throw "Executável $rid não foi gerado."
-            }
-
-            $size = (Get-Item $exe).Length
-            if ($size -lt 1MB) {
-              throw "Executável $rid possui tamanho inválido: $size bytes."
-            }
-
-            Write-Host "$rid validado: $size bytes."
+            Write-Host "Grafo de dependências $rid validado sem gerar artefatos de publicação."
           }

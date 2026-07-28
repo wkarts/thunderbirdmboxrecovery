@@ -1,3 +1,10 @@
+# Correção de build 2.0.0 R2
+
+- Corrige resolução de `UIAutomationClient` e `UIAutomationTypes` no .NET 8 habilitando `UseWPF`.
+- Remove referências manuais incompatíveis com o runner GitHub Actions.
+- Mantém Windows Forms como interface principal e UI Automation como integração assistida.
+- PR passa a validar x86/x64 sem publicar executáveis; release continua gerando binários apenas após merge.
+
 # Changelog
 
 ## 2.0.0
