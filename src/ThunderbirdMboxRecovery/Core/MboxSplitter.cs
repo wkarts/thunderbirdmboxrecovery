@@ -30,13 +30,16 @@ public sealed partial class MboxSplitter
         logger.Info(options.SplitOutput
             ? $"Modo de saída: fracionado em partes de aproximadamente {SizeFormatter.Format(options.TargetChunkBytes)}."
             : "Modo de saída: arquivo único, sem fracionamento.");
-        logger.Info(
-            "O aplicativo não criará um .msf artificial. O Thunderbird reconstruirá o índice válido após a importação.");
+        logger.Info("Nenhum .msf artificial será criado; o Thunderbird deverá gerar um índice válido após a importação.");
+        logger.Info(options.RecoverDeletedMessages
+            ? "Mensagens marcadas como expurgadas/excluídas serão recuperadas."
+            : "Mensagens marcadas como expurgadas/excluídas permanecerão ocultas.");
 
         MboxReadHandle? handle = null;
         FileStream? directStream = null;
         Stream? input = null;
         ChunkWriter? chunks = null;
+        MessageRepairWriter? repair = null;
         FileStream? prefix = null;
         string? prefixPartialPath = null;
         string? prefixFinalPath = null;
@@ -73,6 +76,10 @@ public sealed partial class MboxSplitter
                 options.MailboxName,
                 options.SplitOutput,
                 logger);
+            repair = new MessageRepairWriter(
+                chunks,
+                options.RecoverDeletedMessages,
+                options.NormalizeMozillaStatusHeaders);
             prefixPartialPath = Path.Combine(options.OutputDirectory, "prefixo_nao_reconhecido.bin.partial");
             prefixFinalPath = Path.Combine(options.OutputDirectory, "prefixo_nao_reconhecido.bin");
 
@@ -130,12 +137,12 @@ public sealed partial class MboxSplitter
                                 }
                             }
 
-                            chunks.StartMessage(probe.AsSpan(0, probeLength));
+                            repair.StartMessage(probe.AsSpan(0, probeLength));
                             totalMessages++;
                         }
                         else if (foundFirstMessage)
                         {
-                            chunks.Write(probe.AsSpan(0, probeLength));
+                            repair.WriteLineFragment(probe.AsSpan(0, probeLength), reachedNewline);
                         }
                         else
                         {
@@ -163,7 +170,7 @@ public sealed partial class MboxSplitter
 
                         if (foundFirstMessage)
                         {
-                            chunks.Write(segment);
+                            repair.WriteLineFragment(segment, newlineIndex >= 0);
                         }
                         else
                         {
@@ -211,12 +218,12 @@ public sealed partial class MboxSplitter
                             File.Move(prefixPartialPath, prefixFinalPath, false);
                         }
                     }
-                    chunks.StartMessage(probe.AsSpan(0, probeLength));
+                    repair.StartMessage(probe.AsSpan(0, probeLength));
                     totalMessages++;
                 }
                 else if (foundFirstMessage)
                 {
-                    chunks.Write(probe.AsSpan(0, probeLength));
+                    repair.WriteLineFragment(probe.AsSpan(0, probeLength), lineEnded: false);
                 }
                 else
                 {
@@ -241,6 +248,7 @@ public sealed partial class MboxSplitter
                     "Nenhum separador MBOX reconhecido foi encontrado. O conteúdo descompactado foi preservado em prefixo_nao_reconhecido.bin para análise.");
             }
 
+            repair.Complete();
             chunks.Complete();
             var inputHash = Convert.ToHexString(sourceHash.GetHashAndReset()).ToLowerInvariant();
             var manifest = new RecoveryManifest
@@ -252,6 +260,15 @@ public sealed partial class MboxSplitter
                 InputSha256 = inputHash,
                 SplitOutput = options.SplitOutput,
                 CreatedArtificialMsf = false,
+                RecoveredDeletedMessages = options.RecoverDeletedMessages,
+                NormalizedMozillaStatusHeaders = options.NormalizeMozillaStatusHeaders,
+                ExpungedMessagesRecovered = repair.ExpungedMessagesRecovered,
+                ImapDeletedMessagesRecovered = repair.ImapDeletedMessagesRecovered,
+                StatusHeadersNormalized = repair.StatusHeadersNormalized,
+                StatusHeadersInserted = repair.StatusHeadersInserted,
+                MalformedStatusHeadersRepaired = repair.MalformedStatusHeadersRepaired,
+                MalformedHeaderLines = repair.MalformedHeaderLines,
+                MessagesWithoutHeaderTerminator = repair.MessagesWithoutHeaderTerminator,
                 TargetChunkBytes = options.SplitOutput ? options.TargetChunkBytes : null,
                 PrefixBytes = prefixBytes,
                 EstimatedMessages = totalMessages,
@@ -269,7 +286,8 @@ public sealed partial class MboxSplitter
                 options.OutputDirectory,
                 options.MailboxName,
                 chunks.Parts,
-                options.SplitOutput);
+                options.SplitOutput,
+                repair);
             logger.Info($"SHA-256 da entrada descompactada: {inputHash}");
             logger.Info($"Recuperação concluída: {chunks.Parts.Count} arquivo(s) MBOX e {totalMessages:N0} mensagens estimadas.");
 
@@ -291,6 +309,13 @@ public sealed partial class MboxSplitter
                 PrefixBytes = prefixBytes,
                 TotalMessages = totalMessages,
                 Parts = chunks.Parts,
+                ExpungedMessagesRecovered = repair.ExpungedMessagesRecovered,
+                ImapDeletedMessagesRecovered = repair.ImapDeletedMessagesRecovered,
+                StatusHeadersNormalized = repair.StatusHeadersNormalized,
+                StatusHeadersInserted = repair.StatusHeadersInserted,
+                MalformedStatusHeadersRepaired = repair.MalformedStatusHeadersRepaired,
+                MalformedHeaderLines = repair.MalformedHeaderLines,
+                MessagesWithoutHeaderTerminator = repair.MessagesWithoutHeaderTerminator,
                 ManifestPath = manifestPath,
                 LogPath = logger.LogPath
             };
@@ -312,6 +337,7 @@ public sealed partial class MboxSplitter
             prefix?.Dispose();
             directStream?.Dispose();
             handle?.Dispose();
+            repair?.Dispose();
             chunks?.Dispose();
         }
     }
@@ -327,17 +353,26 @@ public sealed partial class MboxSplitter
         string outputDirectory,
         string mailboxName,
         IReadOnlyList<ChunkManifest> outputs,
-        bool splitOutput)
+        bool splitOutput,
+        MessageRepairWriter repair)
     {
         var path = Path.Combine(outputDirectory, "COMO_IMPORTAR_NO_THUNDERBIRD.txt");
         var safeMailboxName = MailboxNameResolver.FromSource(mailboxName);
-        var outputFiles = string.Join(
-            Environment.NewLine,
-            outputs.Select(item => $"   {item.FileName}"));
-
+        var outputFiles = string.Join(Environment.NewLine, outputs.Select(item => $"   {item.FileName}"));
         var modeDescription = splitOutput
             ? $"Foram gerados {outputs.Count} arquivos MBOX fracionados."
             : $"Foi gerado um único arquivo MBOX: {safeMailboxName}_Recuperada.";
+        var repairDescription = $"""
+REPAROS ESTRUTURAIS APLICADOS
+
+- Mensagens marcadas como expurgadas recuperadas: {repair.ExpungedMessagesRecovered:N0}
+- Mensagens marcadas como excluídas no IMAP recuperadas: {repair.ImapDeletedMessagesRecovered:N0}
+- Cabeçalhos X-Mozilla-Status normalizados: {repair.StatusHeadersNormalized:N0}
+- Cabeçalhos X-Mozilla-Status inseridos: {repair.StatusHeadersInserted:N0}
+- Cabeçalhos X-Mozilla-Status malformados reparados: {repair.MalformedStatusHeadersRepaired:N0}
+- Linhas de cabeçalho excepcionalmente longas preservadas: {repair.MalformedHeaderLines:N0}
+- Mensagens sem terminador de cabeçalho corrigidas: {repair.MessagesWithoutHeaderTerminator:N0}
+""";
 
         var text = $"""
 RECUPERAÇÃO CONCLUÍDA
@@ -348,30 +383,25 @@ ARQUIVOS MBOX GERADOS
 
 {outputFiles}
 
+{repairDescription}
+
 IMPORTAÇÃO CORRETA NO THUNDERBIRD
 
-1. Feche completamente o Thunderbird e confirme no Gerenciador de Tarefas que thunderbird.exe não está em execução.
-2. Abra a pasta do perfil e entre em:
+1. No Thunderbird, desative temporariamente a pesquisa/indexação global.
+2. Feche completamente o Thunderbird e confirme no Gerenciador de Tarefas que thunderbird.exe não está em execução.
+3. Abra a pasta do perfil e entre exatamente em:
    Mail\Local Folders\
-3. Copie somente os arquivos MBOX listados acima.
-4. Não copie para a pasta da conta POP/IMAP e não coloque dentro de ImapMail.
-5. Não crie nem copie um arquivo .msf vazio. Se existir um .msf com o mesmo nome, exclua somente o .msf.
-6. Abra o Thunderbird e aguarde a criação/reconstrução do índice .msf.
-7. Em caixas muito grandes, a reconstrução pode permanecer em segundo plano por bastante tempo.
-8. Enquanto o Thunderbird informar que outra operação está usando a pasta, não use Reparar pasta.
+4. Copie somente os arquivos MBOX listados acima para Local Folders.
+5. Não copie para a pasta da conta POP/IMAP e não coloque dentro de ImapMail.
+6. Não copie nem crie arquivo .msf manualmente. Se existir um .msf com o mesmo nome, exclua somente o .msf.
+7. Abra o Thunderbird e aguarde a criação do índice .msf válido. Em caixas muito grandes isso pode demorar bastante.
+8. Enquanto o Thunderbird informar que outra operação está usando a pasta, não clique em Reparar pasta.
 9. Confira as mensagens antes de excluir qualquer backup.
 
-VALIDAÇÃO DE CAMPO
+IMPORTANTE SOBRE O .MSF
 
-Em teste real com uma caixa de aproximadamente 27,4 GiB, recuperada pela versão 1.2.0,
-o Thunderbird criou/reconstruiu o arquivo .msf sozinho depois de permanecer aberto por algum tempo.
-Esse comportamento confirma que a ausência inicial do .msf não significa falha imediata: é necessário
-aguardar o término da indexação e evitar iniciar reparos concorrentes.
-
-LIMITAÇÃO DESTA LINHA 1.3
-
-Esta versão reconstrói o arquivo MBOX e seus limites de mensagens, mas não altera flags internas
-de mensagens marcadas como excluídas ou expurgadas. Essa recuperação lógica é implementada na linha 1.4.
+O .msf é um índice interno criado pelo Thunderbird. Um arquivo .msf vazio ou fabricado externamente não é um índice válido.
+A recuperação entrega o MBOX reparado e deixa o Thunderbird produzir o .msf correspondente.
 
 SEGURANÇA
 
@@ -380,7 +410,7 @@ SEGURANÇA
 - Preserve o arquivo original e qualquer backup existente até validar a recuperação.
 - Consulte manifesto_recuperacao.json e recuperacao.log.
 """;
-
         File.WriteAllText(path, text, new UTF8Encoding(false));
     }
+
 }

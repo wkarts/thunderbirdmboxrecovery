@@ -5,7 +5,7 @@ param(
 
     [Parameter()]
     [ValidatePattern('^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$')]
-    [string] $Version = "1.3.0"
+    [string] $Version = "1.4.0"
 )
 
 Set-StrictMode -Version Latest

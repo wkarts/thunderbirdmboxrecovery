@@ -14,7 +14,7 @@ public sealed class MainForm : Form
     private readonly Button _browseOutputButton = new();
     private readonly CheckBox _splitOutputCheck = new();
     private readonly NumericUpDown _chunkSize = new();
-    private readonly Label _msfStrategyLabel = new();
+    private readonly CheckBox _recoverDeletedCheck = new();
     private readonly Button _startButton = new();
     private readonly Button _cancelButton = new();
     private readonly Button _openOutputButton = new();
@@ -121,14 +121,12 @@ public sealed class MainForm : Form
         chunkPanel.Controls.Add(new Label { Text = "GiB por parte; utilizado somente quando o fracionamento estiver marcado", AutoSize = true, Margin = new Padding(8, 6, 0, 0) });
         AddRow(settings, 5, "Tamanho das partes:", chunkPanel, new Label());
 
-        _msfStrategyLabel.Text =
-            "O .msf será criado/reconstruído pelo próprio Thunderbird após a importação. " +
-            "Em caixas grandes, aguarde a indexação terminar.";
-        _msfStrategyLabel.AutoSize = true;
-        _msfStrategyLabel.ForeColor = SystemColors.GrayText;
-        AddRow(settings, 6, "Índice Thunderbird:", _msfStrategyLabel, new Label());
+        _recoverDeletedCheck.Text = "Recuperar mensagens marcadas como excluídas ou expurgadas";
+        _recoverDeletedCheck.AutoSize = true;
+        _recoverDeletedCheck.Checked = true;
+        AddRow(settings, 6, "Reparo de status:", _recoverDeletedCheck, new Label());
 
-        _summaryLabel.Text = "Selecione Inbox, Sent, Drafts, Archives, Trash ou qualquer pasta MBOX personalizada.";
+        _summaryLabel.Text = "O .msf será criado pelo próprio Thunderbird após importar o MBOX reparado em Pastas Locais.";
         _summaryLabel.AutoSize = true;
         _summaryLabel.ForeColor = SystemColors.GrayText;
         settings.Controls.Add(new Label { Text = "Análise:", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(3, 8, 3, 8) }, 0, 7);
@@ -384,6 +382,8 @@ public sealed class MainForm : Form
             OutputDirectory = recoveryDirectory,
             MailboxName = MailboxNameResolver.FromSource(source, archiveEntry?.Key),
             SplitOutput = _splitOutputCheck.Checked,
+            RecoverDeletedMessages = _recoverDeletedCheck.Checked,
+            NormalizeMozillaStatusHeaders = true,
             TargetChunkBytes = (long)(_chunkSize.Value * 1024M * 1024M * 1024M),
             ExpectedInputBytes = expectedBytes
         };
@@ -402,11 +402,21 @@ public sealed class MainForm : Form
             _statusLabel.Text = "Recuperação concluída.";
             _progressBar.Value = _progressBar.Maximum;
 
+            AppendLog($"Expurgadas recuperadas: {result.ExpungedMessagesRecovered:N0}.");
+            AppendLog($"Excluídas IMAP recuperadas: {result.ImapDeletedMessagesRecovered:N0}.");
+            AppendLog($"Cabeçalhos de status normalizados/inseridos: {result.StatusHeadersNormalized:N0}/{result.StatusHeadersInserted:N0}.");
+            AppendLog($"Cabeçalhos de status malformados reparados: {result.MalformedStatusHeadersRepaired:N0}.");
+            AppendLog($"Linhas de cabeçalho excepcionalmente longas: {result.MalformedHeaderLines:N0}.");
+
             MessageBox.Show(this,
                 $"Recuperação concluída com sucesso.\n\n" +
                 $"Arquivos MBOX gerados: {result.Parts.Count}\n" +
                 $"Mensagens estimadas: {result.TotalMessages:N0}\n" +
-                $"Destino: {result.OutputDirectory}",
+                $"Expurgadas recuperadas: {result.ExpungedMessagesRecovered:N0}\n" +
+                $"Excluídas IMAP recuperadas: {result.ImapDeletedMessagesRecovered:N0}\n" +
+                $"Destino: {result.OutputDirectory}\n\n" +
+                "Importe somente o MBOX em Mail\\Local Folders, com o Thunderbird fechado. " +
+                "Não copie ou crie um .msf artificial.",
                 "Recuperação concluída",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -514,6 +524,7 @@ public sealed class MainForm : Form
         _archiveEntries.Enabled = !running && ArchiveService.IsArchive(_sourceText.Text.Trim());
         _splitOutputCheck.Enabled = !running;
         _chunkSize.Enabled = !running && _splitOutputCheck.Checked;
+        _recoverDeletedCheck.Enabled = !running;
         _startButton.Enabled = !running;
         _cancelButton.Enabled = running;
     }

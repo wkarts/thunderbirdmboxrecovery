@@ -16,6 +16,8 @@ public sealed class RecoveryOptions
     public required string OutputDirectory { get; init; }
     public required string MailboxName { get; init; }
     public required bool SplitOutput { get; init; }
+    public required bool RecoverDeletedMessages { get; init; }
+    public required bool NormalizeMozillaStatusHeaders { get; init; }
     public required long TargetChunkBytes { get; init; }
     public required long ExpectedInputBytes { get; init; }
 }
@@ -38,6 +40,13 @@ public sealed class RecoveryResult
     public required long PrefixBytes { get; init; }
     public required long TotalMessages { get; init; }
     public required IReadOnlyList<ChunkManifest> Parts { get; init; }
+    public required long ExpungedMessagesRecovered { get; init; }
+    public required long ImapDeletedMessagesRecovered { get; init; }
+    public required long StatusHeadersNormalized { get; init; }
+    public required long StatusHeadersInserted { get; init; }
+    public required long MalformedStatusHeadersRepaired { get; init; }
+    public required long MalformedHeaderLines { get; init; }
+    public required long MessagesWithoutHeaderTerminator { get; init; }
     public required string ManifestPath { get; init; }
     public required string LogPath { get; init; }
 }
@@ -76,6 +85,33 @@ public sealed class RecoveryManifest
 
     [JsonPropertyName("criou_msf_artificial")]
     public bool CreatedArtificialMsf { get; init; }
+
+    [JsonPropertyName("recuperou_mensagens_excluidas")]
+    public required bool RecoveredDeletedMessages { get; init; }
+
+    [JsonPropertyName("normalizou_x_mozilla_status")]
+    public required bool NormalizedMozillaStatusHeaders { get; init; }
+
+    [JsonPropertyName("mensagens_expurgadas_recuperadas")]
+    public required long ExpungedMessagesRecovered { get; init; }
+
+    [JsonPropertyName("mensagens_imap_excluidas_recuperadas")]
+    public required long ImapDeletedMessagesRecovered { get; init; }
+
+    [JsonPropertyName("cabecalhos_status_normalizados")]
+    public required long StatusHeadersNormalized { get; init; }
+
+    [JsonPropertyName("cabecalhos_status_inseridos")]
+    public required long StatusHeadersInserted { get; init; }
+
+    [JsonPropertyName("cabecalhos_status_malformados_reparados")]
+    public required long MalformedStatusHeadersRepaired { get; init; }
+
+    [JsonPropertyName("linhas_cabecalho_malformadas")]
+    public required long MalformedHeaderLines { get; init; }
+
+    [JsonPropertyName("mensagens_sem_terminador_cabecalho")]
+    public required long MessagesWithoutHeaderTerminator { get; init; }
 
     [JsonPropertyName("tamanho_alvo_parte_bytes")]
     public long? TargetChunkBytes { get; init; }
@@ -127,7 +163,7 @@ public static class ApplicationVersion
                 : informationalVersion;
         }
 
-        return assembly.GetName().Version?.ToString(3) ?? "1.3.0";
+        return assembly.GetName().Version?.ToString(3) ?? "1.4.0";
     }
 }
 
