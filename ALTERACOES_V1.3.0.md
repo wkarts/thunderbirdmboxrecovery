@@ -38,3 +38,12 @@ SHA256-v1.3.27-win-x86.txt
 - A versão calculada pelo workflow é incorporada ao assembly durante o `dotnet publish`.
 - O manifesto de recuperação obtém a versão diretamente do assembly.
 - Foi removida a versão fixa `1.2.0` do manifesto JSON.
+
+
+## Correção adicional do build NETSDK1151
+
+- corrige incompatibilidade entre o executável self-contained e o projeto de smoke tests;
+- move `SelfContained` e `PublishSingleFile` para as etapas de `dotnet publish`;
+- fixa a família do SDK em .NET 8 por `global.json`;
+- valida o SDK efetivamente selecionado no runner;
+- mantém publish portátil self-contained para x86 e x64.

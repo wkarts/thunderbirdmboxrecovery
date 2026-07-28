@@ -16,7 +16,6 @@ public sealed class RecoveryOptions
     public required string OutputDirectory { get; init; }
     public required string MailboxName { get; init; }
     public required bool SplitOutput { get; init; }
-    public required bool CreateMsfPlaceholder { get; init; }
     public required long TargetChunkBytes { get; init; }
     public required long ExpectedInputBytes { get; init; }
 }
@@ -72,8 +71,11 @@ public sealed class RecoveryManifest
     [JsonPropertyName("saida_fracionada")]
     public required bool SplitOutput { get; init; }
 
-    [JsonPropertyName("criou_msf_reconstrucao")]
-    public required bool CreatedMsfPlaceholders { get; init; }
+    [JsonPropertyName("estrategia_indice_msf")]
+    public string MsfIndexStrategy { get; init; } = "reconstrucao_pelo_thunderbird";
+
+    [JsonPropertyName("criou_msf_artificial")]
+    public bool CreatedArtificialMsf { get; init; }
 
     [JsonPropertyName("tamanho_alvo_parte_bytes")]
     public long? TargetChunkBytes { get; init; }
@@ -104,9 +106,6 @@ public sealed class ChunkManifest
 
     [JsonPropertyName("sha256")]
     public required string Sha256 { get; init; }
-
-    [JsonPropertyName("arquivo_indice_msf")]
-    public string? IndexFileName { get; init; }
 }
 
 public static class ApplicationVersion
@@ -140,11 +139,13 @@ public static class SizeFormatter
     {
         double size = value;
         var unit = 0;
+
         while (size >= 1024 && unit < Units.Length - 1)
         {
             size /= 1024;
             unit++;
         }
+
         return $"{size:N2} {Units[unit]}";
     }
 }

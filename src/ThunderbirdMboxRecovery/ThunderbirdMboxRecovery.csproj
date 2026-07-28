@@ -19,10 +19,7 @@
     <Company>WWSoftware's Sistemas</Company>
     <Product>Thunderbird MBOX Recovery</Product>
     <Description>Recuperação segura de caixas MBOX grandes do Mozilla Thunderbird.</Description>
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
     <PublishTrimmed>false</PublishTrimmed>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <DebugType>embedded</DebugType>
     <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>

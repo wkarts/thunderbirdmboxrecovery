@@ -1,3 +1,5 @@
+> **Histórico:** este documento descreve o comportamento da versão 1.2.0. Na linha 1.3, a criação de `.msf` vazio foi removida e o índice passou a ser reconstruído pelo próprio Thunderbird.
+
 # Alterações da versão 1.2.0
 
 - Saída única sem fracionamento definida como padrão.

@@ -14,7 +14,7 @@ public sealed class MainForm : Form
     private readonly Button _browseOutputButton = new();
     private readonly CheckBox _splitOutputCheck = new();
     private readonly NumericUpDown _chunkSize = new();
-    private readonly CheckBox _createMsfCheck = new();
+    private readonly Label _msfStrategyLabel = new();
     private readonly Button _startButton = new();
     private readonly Button _cancelButton = new();
     private readonly Button _openOutputButton = new();
@@ -121,10 +121,12 @@ public sealed class MainForm : Form
         chunkPanel.Controls.Add(new Label { Text = "GiB por parte; utilizado somente quando o fracionamento estiver marcado", AutoSize = true, Margin = new Padding(8, 6, 0, 0) });
         AddRow(settings, 5, "Tamanho das partes:", chunkPanel, new Label());
 
-        _createMsfCheck.Text = "Criar o arquivo .msf correspondente para reconstrução pelo Thunderbird";
-        _createMsfCheck.AutoSize = true;
-        _createMsfCheck.Checked = true;
-        AddRow(settings, 6, "Índice Thunderbird:", _createMsfCheck, new Label());
+        _msfStrategyLabel.Text =
+            "O .msf será criado/reconstruído pelo próprio Thunderbird após a importação. " +
+            "Em caixas grandes, aguarde a indexação terminar.";
+        _msfStrategyLabel.AutoSize = true;
+        _msfStrategyLabel.ForeColor = SystemColors.GrayText;
+        AddRow(settings, 6, "Índice Thunderbird:", _msfStrategyLabel, new Label());
 
         _summaryLabel.Text = "Selecione Inbox, Sent, Drafts, Archives, Trash ou qualquer pasta MBOX personalizada.";
         _summaryLabel.AutoSize = true;
@@ -353,7 +355,11 @@ public sealed class MainForm : Form
         {
             var mailboxName = MailboxNameResolver.FromSource(source, archiveEntry?.Key);
             recoveryDirectory = RecoveryCoordinator.CreateOutputDirectory(outputRoot, mailboxName);
-            RecoveryCoordinator.ValidateFreeSpace(recoveryDirectory, expectedBytes);
+            RecoveryCoordinator.ValidateDestination(
+                recoveryDirectory,
+                expectedBytes,
+                _splitOutputCheck.Checked,
+                (long)(_chunkSize.Value * 1024M * 1024M * 1024M));
         }
         catch (Exception ex)
         {
@@ -363,7 +369,8 @@ public sealed class MainForm : Form
 
         _lastOutputDirectory = recoveryDirectory;
         _openOutputButton.Enabled = true;
-        _cancellation = new CancellationTokenSource();
+        using var cancellation = new CancellationTokenSource();
+        _cancellation = cancellation;
         SetRunning(true);
         _progressBar.Value = 0;
         AppendLog(new string('-', 90));
@@ -377,7 +384,6 @@ public sealed class MainForm : Form
             OutputDirectory = recoveryDirectory,
             MailboxName = MailboxNameResolver.FromSource(source, archiveEntry?.Key),
             SplitOutput = _splitOutputCheck.Checked,
-            CreateMsfPlaceholder = _createMsfCheck.Checked,
             TargetChunkBytes = (long)(_chunkSize.Value * 1024M * 1024M * 1024M),
             ExpectedInputBytes = expectedBytes
         };
@@ -386,9 +392,10 @@ public sealed class MainForm : Form
 
         try
         {
+            var token = cancellation.Token;
             var result = await Task.Run(
-                () => new MboxSplitter().Execute(options, progress, _cancellation.Token),
-                _cancellation.Token);
+                () => new MboxSplitter().Execute(options, progress, token),
+                token);
 
             AppendLog($"CONCLUÍDO: {result.Parts.Count} arquivo(s) MBOX, {result.TotalMessages:N0} mensagens estimadas.");
             AppendLog($"SHA-256 da entrada: {result.InputSha256}");
@@ -422,7 +429,6 @@ public sealed class MainForm : Form
         }
         finally
         {
-            _cancellation.Dispose();
             _cancellation = null;
             SetRunning(false);
         }
@@ -508,7 +514,6 @@ public sealed class MainForm : Form
         _archiveEntries.Enabled = !running && ArchiveService.IsArchive(_sourceText.Text.Trim());
         _splitOutputCheck.Enabled = !running;
         _chunkSize.Enabled = !running && _splitOutputCheck.Checked;
-        _createMsfCheck.Enabled = !running;
         _startButton.Enabled = !running;
         _cancelButton.Enabled = running;
     }

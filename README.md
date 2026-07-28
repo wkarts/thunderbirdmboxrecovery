@@ -20,7 +20,7 @@ A ferramenta realiza uma **reconstrução estrutural do MBOX**:
 - copia as mensagens encontradas para uma nova caixa MBOX recuperada;
 - gera por padrão um único MBOX recuperado, sem fracionamento;
 - permite opcionalmente fracionar a saída somente no limite entre mensagens;
-- cria o arquivo `.msf` correspondente como marcador para reconstrução automática pelo Thunderbird;
+- não fabrica arquivo `.msf`; o Thunderbird cria/reconstrói o índice válido após a importação;
 - preserva conteúdo anterior à primeira mensagem reconhecida para análise;
 - não altera o arquivo original.
 
@@ -38,7 +38,7 @@ Isso normalmente recupera a visualização das mensagens quando o problema é ca
 - Divisão apenas no início reconhecido de uma nova mensagem MBOX.
 - Saída única sem fracionamento por padrão.
 - Fracionamento opcional com tamanho configurável, padrão de 1,50 GiB.
-- Arquivo `.msf` correspondente criado por padrão para o Thunderbird reconstruir o índice.
+- O `.msf` não é criado artificialmente; a reconstrução é delegada ao Thunderbird.
 - SHA-256 da entrada descompactada e de cada parte.
 - `manifesto_recuperacao.json`.
 - `recuperacao.log`.
@@ -84,10 +84,9 @@ caixa.mbox      -> caixa_Recuperada
 5. Em backups compactados, clique em **Analisar backup** e selecione a caixa desejada.
 6. Selecione uma unidade com espaço livre suficiente.
 7. Mantenha a saída única, ou marque o fracionamento e defina o tamanho das partes.
-8. Mantenha marcada a criação do `.msf` para reconstrução do índice.
-9. Inicie a recuperação.
-10. Confira `manifesto_recuperacao.json`, `recuperacao.log` e os arquivos gerados.
-11. Importe o arquivo único ou as partes em um perfil separado do Thunderbird antes de alterar o perfil original.
+8. Inicie a recuperação.
+9. Confira `manifesto_recuperacao.json`, `recuperacao.log` e os arquivos gerados.
+10. Importe o arquivo único ou as partes em um perfil separado do Thunderbird antes de alterar o perfil original.
 
 ## Segurança operacional
 
@@ -137,4 +136,9 @@ Cada execução manual do workflow também recebe um novo `GITHUB_RUN_NUMBER` e,
 
 A versão 1.3.0 gera, por padrão, apenas um arquivo como `Inbox_Recuperada` ou `Sent_Recuperada`. O operador pode marcar o fracionamento quando desejar várias partes.
 
-O `.msf` criado ao lado de cada MBOX é intencionalmente vazio: ele é um marcador para que o Thunderbird reconstrua o banco de índice a partir das mensagens do MBOX. O conteúdo real dos emails permanece exclusivamente no arquivo MBOX sem extensão.
+A versão 1.3.0 não cria `.msf` vazio. Depois que o MBOX recuperado é copiado para `Mail\Local Folders\` com o Thunderbird fechado, o próprio Thunderbird cria ou reconstrói o índice `.msf` válido. Em caixas muito grandes, esse processamento pode demorar e manter a pasta ocupada.
+
+
+## Build normal e publicação portátil
+
+A solução é compilada normalmente como framework-dependent para permitir os smoke tests. Os executáveis entregues ao cliente continuam autossuficientes: `SelfContained=true` e `PublishSingleFile=true` são aplicados exclusivamente durante o publish `win-x86` e `win-x64`.

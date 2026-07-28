@@ -30,9 +30,8 @@ public sealed partial class MboxSplitter
         logger.Info(options.SplitOutput
             ? $"Modo de saída: fracionado em partes de aproximadamente {SizeFormatter.Format(options.TargetChunkBytes)}."
             : "Modo de saída: arquivo único, sem fracionamento.");
-        logger.Info(options.CreateMsfPlaceholder
-            ? "Será criado um arquivo .msf vazio para reconstrução automática pelo Thunderbird."
-            : "A criação do arquivo .msf foi desativada pelo operador.");
+        logger.Info(
+            "O aplicativo não criará um .msf artificial. O Thunderbird reconstruirá o índice válido após a importação.");
 
         MboxReadHandle? handle = null;
         FileStream? directStream = null;
@@ -73,7 +72,6 @@ public sealed partial class MboxSplitter
                 options.TargetChunkBytes,
                 options.MailboxName,
                 options.SplitOutput,
-                options.CreateMsfPlaceholder,
                 logger);
             prefixPartialPath = Path.Combine(options.OutputDirectory, "prefixo_nao_reconhecido.bin.partial");
             prefixFinalPath = Path.Combine(options.OutputDirectory, "prefixo_nao_reconhecido.bin");
@@ -253,7 +251,7 @@ public sealed partial class MboxSplitter
                 InputSizeBytes = processed,
                 InputSha256 = inputHash,
                 SplitOutput = options.SplitOutput,
-                CreatedMsfPlaceholders = options.CreateMsfPlaceholder,
+                CreatedArtificialMsf = false,
                 TargetChunkBytes = options.SplitOutput ? options.TargetChunkBytes : null,
                 PrefixBytes = prefixBytes,
                 EstimatedMessages = totalMessages,
@@ -271,8 +269,7 @@ public sealed partial class MboxSplitter
                 options.OutputDirectory,
                 options.MailboxName,
                 chunks.Parts,
-                options.SplitOutput,
-                options.CreateMsfPlaceholder);
+                options.SplitOutput);
             logger.Info($"SHA-256 da entrada descompactada: {inputHash}");
             logger.Info($"Recuperação concluída: {chunks.Parts.Count} arquivo(s) MBOX e {totalMessages:N0} mensagens estimadas.");
 
@@ -321,7 +318,6 @@ public sealed partial class MboxSplitter
 
     private static bool IsSeparator(ReadOnlySpan<byte> lineStart)
     {
-        if (lineStart.StartsWith("From - "u8)) return true;
         var length = Math.Min(lineStart.Length, ProbeLimit);
         var text = Encoding.ASCII.GetString(lineStart[..length]);
         return SeparatorRegex().IsMatch(text);
@@ -331,30 +327,17 @@ public sealed partial class MboxSplitter
         string outputDirectory,
         string mailboxName,
         IReadOnlyList<ChunkManifest> outputs,
-        bool splitOutput,
-        bool createdMsfPlaceholders)
+        bool splitOutput)
     {
         var path = Path.Combine(outputDirectory, "COMO_IMPORTAR_NO_THUNDERBIRD.txt");
         var safeMailboxName = MailboxNameResolver.FromSource(mailboxName);
-        var outputFiles = string.Join(Environment.NewLine, outputs.Select(item => $"   {item.FileName}"));
-        var msfFiles = string.Join(Environment.NewLine, outputs
-            .Where(item => !string.IsNullOrWhiteSpace(item.IndexFileName))
-            .Select(item => $"   {item.IndexFileName}"));
+        var outputFiles = string.Join(
+            Environment.NewLine,
+            outputs.Select(item => $"   {item.FileName}"));
 
         var modeDescription = splitOutput
             ? $"Foram gerados {outputs.Count} arquivos MBOX fracionados."
             : $"Foi gerado um único arquivo MBOX: {safeMailboxName}_Recuperada.";
-
-        var msfDescription = createdMsfPlaceholders
-            ? $"""
-Também foram criados arquivos .msf vazios de reconstrução:
-{msfFiles}
-
-Esses arquivos não contêm mensagens. O Thunderbird deve preenchê-los/reconstruí-los
-quando abrir os MBOX recuperados. Se uma caixa não aparecer corretamente, feche o
-Thunderbird, exclua somente o .msf correspondente e abra novamente.
-"""
-            : "Os arquivos .msf não foram criados. O Thunderbird deverá criá-los automaticamente.";
 
         var text = $"""
 RECUPERAÇÃO CONCLUÍDA
@@ -365,18 +348,30 @@ ARQUIVOS MBOX GERADOS
 
 {outputFiles}
 
-{msfDescription}
+IMPORTAÇÃO CORRETA NO THUNDERBIRD
 
-IMPORTAÇÃO RECOMENDADA
-
-1. Crie um perfil separado no Thunderbird para conferência.
-2. Abra o Thunderbird uma vez e feche-o completamente.
-3. Localize a pasta do perfil e entre em:
+1. Feche completamente o Thunderbird e confirme no Gerenciador de Tarefas que thunderbird.exe não está em execução.
+2. Abra a pasta do perfil e entre em:
    Mail\Local Folders\
-4. Copie os arquivos MBOX listados acima e seus respectivos .msf para essa pasta.
-5. Não copie arquivos com extensão .partial.
-6. Abra o Thunderbird e aguarde a reconstrução dos índices .msf.
-7. Confira as mensagens antes de excluir qualquer backup.
+3. Copie somente os arquivos MBOX listados acima.
+4. Não copie para a pasta da conta POP/IMAP e não coloque dentro de ImapMail.
+5. Não crie nem copie um arquivo .msf vazio. Se existir um .msf com o mesmo nome, exclua somente o .msf.
+6. Abra o Thunderbird e aguarde a criação/reconstrução do índice .msf.
+7. Em caixas muito grandes, a reconstrução pode permanecer em segundo plano por bastante tempo.
+8. Enquanto o Thunderbird informar que outra operação está usando a pasta, não use Reparar pasta.
+9. Confira as mensagens antes de excluir qualquer backup.
+
+VALIDAÇÃO DE CAMPO
+
+Em teste real com uma caixa de aproximadamente 27,4 GiB, recuperada pela versão 1.2.0,
+o Thunderbird criou/reconstruiu o arquivo .msf sozinho depois de permanecer aberto por algum tempo.
+Esse comportamento confirma que a ausência inicial do .msf não significa falha imediata: é necessário
+aguardar o término da indexação e evitar iniciar reparos concorrentes.
+
+LIMITAÇÃO DESTA LINHA 1.3
+
+Esta versão reconstrói o arquivo MBOX e seus limites de mensagens, mas não altera flags internas
+de mensagens marcadas como excluídas ou expurgadas. Essa recuperação lógica é implementada na linha 1.4.
 
 SEGURANÇA
 
@@ -385,7 +380,7 @@ SEGURANÇA
 - Preserve o arquivo original e qualquer backup existente até validar a recuperação.
 - Consulte manifesto_recuperacao.json e recuperacao.log.
 """;
+
         File.WriteAllText(path, text, new UTF8Encoding(false));
     }
-
 }
