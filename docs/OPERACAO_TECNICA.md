@@ -1,133 +1,60 @@
-# Operação técnica — Thunderbird Recovery Suite 2.0
+# Operação técnica — Thunderbird Recovery Suite 2.1
 
-## 1. Preparação
+## Regra principal
 
-- Trabalhe em cópia da origem.
-- Reserve espaço para saída, temporários e backup de segurança.
-- Use NTFS ou exFAT para arquivo único maior que 4 GiB.
-- Não compacte o MBOX original suspeito.
-- Feche o Thunderbird antes de backup consistente, restauração, registro de perfil ou substituição de arquivos.
+Nunca trabalhe sobre a única cópia de um perfil ou MBOX. Preserve o arquivo original e use uma unidade NTFS com espaço suficiente para origem, saída e backup de segurança.
 
-## 2. Diagnóstico e exploração
+## Explorar e extrair EML
 
-1. Abra **Testar**.
-2. Selecione MBOX direto ou entrada dentro de backup compactado.
-3. Informe senha quando necessário.
-4. Execute o diagnóstico e salve o JSON.
-5. Use **Explorar** para inventário e exportação CSV/JSON.
+1. Abra a aba **Explorar**.
+2. Selecione qualquer arquivo MBOX do Thunderbird, inclusive sem extensão.
+3. Clique em **Listar mensagens do MBOX**.
+4. Selecione uma ou mais linhas para extrair emails específicos.
+5. Use **Extrair selecionada(s) para EML** ou **Extrair todas para EML**.
+6. A extração gera arquivos `.eml` e um índice CSV.
 
-Ocorrências relevantes:
+A aba **Extrair EML** permanece disponível para filtros por assunto, remetente, destinatário, período, anexo e status de exclusão.
 
-- `SEM_MENSAGENS`: nenhum separador MBOX reconhecido.
-- `CABECALHO_SEM_TERMINADOR`: ausência da linha vazia entre cabeçalho e corpo.
-- `STATUS_MOZILLA_MALFORMADO`: flags internas inválidas.
-- `MESSAGE_ID_DUPLICADO`: possível duplicação ou concatenação.
-- `PREFIXO_NAO_RECONHECIDO`: bytes antes da primeira mensagem.
+## Reparar
 
-## 3. Reparo e recuperação de excluídas
+- Arquivo único é o padrão.
+- Fracionamento é opcional.
+- A origem é aberta somente para leitura.
+- O reparo pode normalizar status Mozilla e recuperar mensagens excluídas ainda presentes.
+- Não é criado `.msf` artificial.
 
-Configuração recomendada:
+## Indexar
 
-```text
-Fracionar saída: desmarcado
-Recuperar mensagens excluídas/expurgadas: marcado
-Normalizar X-Mozilla-Status: marcado
-```
+A aba **Indexar MSF** cria um perfil temporário e usa o Thunderbird instalado para construir o índice real. Em caixas grandes, a operação pode demorar e a pasta pode permanecer ocupada durante a indexação.
 
-A saída padrão contém:
+## Backup ZIP ou 7Z
 
-```text
-Inbox_Recuperada
-manifesto_recuperacao.json
-recuperacao.log
-COMO_IMPORTAR_NO_THUNDERBIRD.txt
-```
+1. Feche o Thunderbird.
+2. Selecione o perfil.
+3. Escolha completo, somente mensagens ou seletivo.
+4. Escolha ZIP ou 7Z.
+5. Crie o backup.
 
-A ferramenta não cria `.msf` artificial. Use **Indexar MSF** para gerar um índice pela instalação real do Thunderbird.
+ZIP é mais compatível. 7Z/LZMA2 normalmente reduz mais o tamanho.
 
-## 4. Extração EML
+## Restaurar sobre perfil existente
 
-Use **Extrair EML** para filtrar itens por remetente, destinatário, assunto, período, anexos ou exclusão. Com a opção de preservar cabeçalhos Mozilla desmarcada, `X-Mozilla-Status`, `X-Mozilla-Status2` e `X-Mozilla-Keys` são removidos.
+A restauração é uma mesclagem. Com sobrescrita habilitada, arquivos com o mesmo caminho podem ser substituídos. Isso pode alterar mensagens, preferências, índices, catálogos, credenciais e extensões. Arquivos que não existam no backup não são excluídos automaticamente.
 
-## 5. Indexação assistida
+Para continuar sobre um perfil que já contém dados:
 
-1. Abra **Indexar MSF**.
-2. Selecione o MBOX reparado.
-3. Detecte ou selecione `thunderbird.exe`.
-4. Informe um nome simples para a caixa.
-5. Mantenha automação habilitada.
-6. Ajuste timeout para caixas grandes; o padrão é 6 horas.
-7. Inicie.
+1. Feche completamente o Thunderbird.
+2. Marque a confirmação de compreensão do risco.
+3. Digite `RESTAURAR`.
+4. Confirme o alerta crítico.
+5. Mantenha o backup de segurança habilitado, preferencialmente em 7Z para reduzir espaço ou ZIP para máxima compatibilidade.
+6. Quando o backup estiver desabilitado, confirme novamente a operação irreversível.
 
-A instância isolada é iniciada com:
+## Pacotes de distribuição
 
-```text
-thunderbird.exe -profile "<perfil-temporario>" -new-instance -no-remote
-```
-
-O perfil temporário solicita o modo tradicional Mork desabilitando Panorama. Se a versão instalada não respeitar essa preferência ou já utilizar outra arquitetura, a suíte também monitora `panorama.sqlite`.
-
-A conclusão exige índice válido e estável. Para `.msf`, a suíte compara a contagem `numMsgs` com os separadores MBOX. Divergência persistente não é ocultada: o resultado é entregue com aviso técnico.
-
-Quando UI Automation não localizar a pasta, selecione-a manualmente uma vez na janela isolada. Não feche essa janela até a conclusão.
-
-Entrega tradicional:
-
-```text
-Inbox_Recuperada
-Inbox_Recuperada.msf
-manifesto_indexacao.json
-indexacao_thunderbird.log
-```
-
-## 6. Backup
-
-### Completo
-
-Inclui perfil operacional e índices; caches somente quando selecionados.
-
-### Somente mensagens
-
-Inclui `Mail`, `ImapMail` e `News`, sem `.msf` e bancos globais reconstruíveis.
-
-### Seletivo
-
-Permite escolher categorias.
-
-Por padrão, a operação é bloqueada se houver lock de perfil. A opção **Permitir perfil aberto** existe somente para contingência e registra `SourceWasInUse=true` no manifesto.
-
-## 7. Restauração
-
-1. Feche todas as instâncias do Thunderbird.
-2. Selecione backup e senha, quando necessário.
-3. Escolha pasta de destino.
-4. Selecione modo completo, somente mensagens ou seletivo.
-5. Mantenha backup de segurança e validação SHA-256 ativos.
-6. Marque sobrescrita somente quando intencional.
-7. Para registrar o perfil, informe um nome e mantenha o Thunderbird fechado.
-8. A opção de padrão altera `Default=1` no `profiles.ini`; ela não promete reconfigurar entradas específicas de `installs.ini`.
-
-A restauração rejeita caminhos absolutos e `../`, usa `.restore-partial` e mantém cópia única do `profiles.ini` antes do registro.
-
-## 8. Importação manual
-
-Com o Thunderbird fechado, copie o MBOX sem extensão para:
-
-```text
-<perfil>\Mail\Local Folders\
-```
-
-Sem o módulo de indexação, abra o Thunderbird e aguarde. Em caixas com dezenas de gigabytes, o `.msf` pode ser reconstruído depois de bastante tempo e a pasta pode permanecer temporariamente ocupada.
-
-## 9. Evidências de atendimento
-
-Preserve:
-
-- origem e SHA-256;
-- diagnóstico JSON;
-- manifesto e log do reparo;
-- EMLs/CSV quando usados;
-- manifesto e log da indexação;
-- manifesto e SHA-256 do backup;
-- versão e arquitetura do Thunderbird;
-- informação de perfil aberto durante backup, quando aplicável.
+- `win-x64`: recomendado para Windows moderno.
+- `win-x86`: somente para Windows 32 bits.
+- executável sem sufixo: portátil e self-contained.
+- `runtime-required`: menor, mas exige .NET 8 Desktop Runtime da arquitetura correta.
+- ZIP e 7Z: versões compactadas para transporte.
+- UPX: opção experimental e desativada por padrão.

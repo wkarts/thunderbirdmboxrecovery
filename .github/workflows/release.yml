@@ -11,7 +11,7 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
@@ -114,6 +114,20 @@ jobs:
             throw "Os smoke tests integrados falharam."
           }
 
+      - name: Ensure 7-Zip is available for compressed packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $candidate = Join-Path $env:ProgramFiles "7-Zip\7z.exe"
+          if ((Get-Command 7z -ErrorAction SilentlyContinue) -or (Test-Path $candidate)) {
+            Write-Host "7-Zip já está disponível."
+          } else {
+            choco install 7zip.commandline -y --no-progress
+            if ($LASTEXITCODE -ne 0) {
+              throw "Não foi possível instalar o 7-Zip para gerar os pacotes compactados."
+            }
+          }
+
       - name: Build portable win-x86 and win-x64
         shell: pwsh
         run: |
@@ -145,14 +159,16 @@ jobs:
           - análise sintática dos scripts PowerShell;
           - build da solução com warnings tratados como erros;
           - smoke tests de reparo, análise, EML, índices, backup e restauração;
-          - publicação portátil x86 e x64.
+          - publicação portátil x86 e x64;
+          - geração de pacotes ZIP e 7Z;
+          - geração de variantes menores que exigem o .NET 8 Desktop Runtime.
 
           Esta release não reutiliza tags, não apaga versões anteriores e não substitui assets existentes.
           Confira o arquivo SHA256SUMS.txt antes de executar os binários.
           "@
 
           $assets = Get-ChildItem release -File |
-            Where-Object { $_.Name -match '\.(exe|zip|txt)$' } |
+            Where-Object { $_.Name -match '\.(exe|zip|7z|txt)$' } |
             Sort-Object Name |
             Select-Object -ExpandProperty FullName
 

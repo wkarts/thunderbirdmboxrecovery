@@ -1,6 +1,5 @@
 using SharpCompress.Archives;
 using SharpCompress.Readers;
-using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -33,8 +32,9 @@ public static class ProfileRestoreService
         if (options.CreateSafetyBackup && Directory.EnumerateFileSystemEntries(destination).Any())
         {
             var parent = Path.GetDirectoryName(destination) ?? destination;
-            var path = Path.Combine(parent, $"Backup_Seguranca_{Path.GetFileName(destination)}_{DateTime.Now:yyyyMMdd_HHmmss}.zip");
-            safetyBackup = CreateSafetySnapshot(destination, path, cancellationToken);
+            var extension = ProfileBackupService.ArchiveExtension(options.SafetyBackupFormat);
+            var path = Path.Combine(parent, $"Backup_Seguranca_{Path.GetFileName(destination)}_{DateTime.Now:yyyyMMdd_HHmmss}{extension}");
+            safetyBackup = ProfileBackupService.CreateDirectorySnapshot(destination, path, options.SafetyBackupFormat, cancellationToken);
         }
 
         var warnings = new List<string>();
@@ -212,37 +212,6 @@ public static class ProfileRestoreService
                               relativeKeys.Any(key => key.StartsWith("Mail/", StringComparison.OrdinalIgnoreCase)) ||
                               relativeKeys.Any(key => key.StartsWith("ImapMail/", StringComparison.OrdinalIgnoreCase));
         return resemblesProfile ? prefix : string.Empty;
-    }
-
-    private static string CreateSafetySnapshot(string sourceDirectory, string zipPath, CancellationToken cancellationToken)
-    {
-        var partial = zipPath + ".partial";
-        TryDelete(partial);
-        try
-        {
-            using (var file = new FileStream(partial, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 1024 * 1024, FileOptions.SequentialScan))
-            using (var zip = new System.IO.Compression.ZipArchive(file, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: false, System.Text.Encoding.UTF8))
-            {
-                foreach (var source in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var relative = ProfileFileClassifier.NormalizeRelative(sourceDirectory, source);
-                    var name = Path.GetFileName(source);
-                    if (name.Equals("parent.lock", StringComparison.OrdinalIgnoreCase) || name.Equals("lock", StringComparison.OrdinalIgnoreCase)) continue;
-                    var entry = zip.CreateEntry("profile/" + relative, System.IO.Compression.CompressionLevel.Optimal);
-                    using var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1024 * 1024, FileOptions.SequentialScan);
-                    using var output = entry.Open();
-                    input.CopyTo(output);
-                }
-            }
-            File.Move(partial, zipPath);
-            return zipPath;
-        }
-        catch
-        {
-            TryDelete(partial);
-            throw;
-        }
     }
 
     private static string Normalize(string path) => path.Replace('\\', '/').TrimStart('/');

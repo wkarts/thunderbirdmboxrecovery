@@ -15,7 +15,7 @@ internal static class Program
             RunMsfValidationTest(root);
             RunSqliteValidationTest(root);
             RunProfileBackupAndRestoreTest(root);
-            Console.WriteLine("Smoke tests da Thunderbird Recovery Suite 2.0 concluídos com sucesso.");
+            Console.WriteLine("Smoke tests da Thunderbird Recovery Suite 2.1 concluídos com sucesso.");
             return 0;
         }
         catch (Exception exception)
@@ -100,6 +100,24 @@ internal static class Program
         Assert(File.Exists(extraction.CsvIndexPath), "O índice CSV dos EMLs não foi gerado.");
         var eml = File.ReadAllText(extraction.Files[0], Encoding.UTF8);
         Assert(!eml.Contains("X-Mozilla-Status", StringComparison.OrdinalIgnoreCase), "O EML sanitizado não deve conter status Mozilla.");
+
+        var selectedDirectory = Path.Combine(root, "eml-selected");
+        var selectedExtraction = MboxExtractor.ExtractAsync(new MessageExtractionOptions
+        {
+            Source = source,
+            OutputDirectory = selectedDirectory,
+            Filter = new MessageExtractionFilter
+            {
+                IncludeDeleted = true,
+                MessageNumbers = new HashSet<long> { 2 }
+            },
+            GenerateCsvIndex = true,
+            PreserveMozillaStatusHeaders = true
+        }, null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Assert(selectedExtraction.ExtractedMessages == 1, "A extração seletiva deve gerar somente a mensagem número 2.");
+        var selectedEml = File.ReadAllText(selectedExtraction.Files.Single(), Encoding.UTF8);
+        Assert(selectedEml.Contains("Subject: Mensagem lida", StringComparison.OrdinalIgnoreCase), "A mensagem selecionada incorreta foi extraída.");
     }
 
     private static void RunMsfValidationTest(string root)
@@ -144,7 +162,8 @@ internal static class Program
                 IsRelative = false,
                 EstimatedBytes = 0
             },
-            DestinationZipPath = backupPath,
+            DestinationArchivePath = backupPath,
+            ArchiveFormat = ProfileBackupArchiveFormat.Zip,
             Mode = ProfileBackupMode.Complete,
             Selection = new ProfileBackupSelection { Cache = false, SearchIndexes = true },
             CalculateFileHashes = true
@@ -186,6 +205,40 @@ internal static class Program
         Assert(File.Exists(Path.Combine(messagesOnlyDestination, "Mail", "Local Folders", "Inbox")), "O modo somente mensagens não restaurou a Inbox.");
         Assert(!File.Exists(Path.Combine(messagesOnlyDestination, "prefs.js")), "O modo somente mensagens não deve restaurar prefs.js.");
         Assert(!messagesOnlyRestore.ProfileRegistered, "A restauração somente de mensagens não deve registrar perfil.");
+
+        var sevenZipBackupPath = Path.Combine(root, "profile-backup.7z");
+        var sevenZipBackup = ProfileBackupService.CreateAsync(new ProfileBackupOptions
+        {
+            Profile = new ThunderbirdProfileInfo
+            {
+                Name = "teste-7z",
+                Path = profilePath,
+                IsDefault = false,
+                IsRelative = false,
+                EstimatedBytes = 0
+            },
+            DestinationArchivePath = sevenZipBackupPath,
+            ArchiveFormat = ProfileBackupArchiveFormat.SevenZip,
+            Mode = ProfileBackupMode.Complete,
+            Selection = new ProfileBackupSelection { Cache = false, SearchIndexes = true },
+            CalculateFileHashes = true
+        }, null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Assert(File.Exists(sevenZipBackup.BackupPath), "O backup 7Z não foi criado.");
+        Assert(sevenZipBackup.ArchiveFormat == ProfileBackupArchiveFormat.SevenZip, "O resultado do backup deveria indicar 7Z.");
+
+        var sevenZipDestination = Path.Combine(root, "profile-restored-7z");
+        var sevenZipRestore = ProfileRestoreService.RestoreAsync(new ProfileRestoreOptions
+        {
+            BackupPath = sevenZipBackup.BackupPath,
+            DestinationProfilePath = sevenZipDestination,
+            CreateSafetyBackup = false,
+            OverwriteExistingFiles = true,
+            VerifyHashes = true
+        }, null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Assert(sevenZipRestore.RestoredFiles == sevenZipBackup.Files, "A restauração 7Z deve recuperar todos os arquivos.");
+        Assert(File.Exists(Path.Combine(sevenZipDestination, "Mail", "Local Folders", "Inbox")), "A Inbox não foi restaurada do backup 7Z.");
     }
 
     private static RecoveryOptions CreateRecoveryOptions(string source, string output, bool splitOutput, long targetChunkBytes) => new()

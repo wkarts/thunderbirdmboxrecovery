@@ -89,9 +89,11 @@ public sealed class MessageExtractionFilter
     public bool OnlyDeleted { get; init; }
     public bool IncludeDeleted { get; init; } = true;
     public bool OnlyWithAttachment { get; init; }
+    public IReadOnlySet<long>? MessageNumbers { get; init; }
 
     public bool Matches(MboxMessageInfo message)
     {
+        if (MessageNumbers is { Count: > 0 } && !MessageNumbers.Contains(message.Number)) return false;
         if (!IncludeDeleted && message.IsDeleted) return false;
         if (OnlyDeleted && !message.IsDeleted) return false;
         if (OnlyWithAttachment && !message.HasAttachment) return false;
@@ -204,6 +206,12 @@ public enum ProfileBackupMode
     Selective
 }
 
+public enum ProfileBackupArchiveFormat
+{
+    Zip,
+    SevenZip
+}
+
 public sealed class ProfileBackupSelection
 {
     public bool Mail { get; init; } = true;
@@ -220,7 +228,8 @@ public sealed class ProfileBackupSelection
 public sealed class ProfileBackupOptions
 {
     public required ThunderbirdProfileInfo Profile { get; init; }
-    public required string DestinationZipPath { get; init; }
+    public required string DestinationArchivePath { get; init; }
+    public ProfileBackupArchiveFormat ArchiveFormat { get; init; } = ProfileBackupArchiveFormat.Zip;
     public ProfileBackupMode Mode { get; init; } = ProfileBackupMode.Complete;
     public ProfileBackupSelection Selection { get; init; } = new();
     public bool CalculateFileHashes { get; init; } = true;
@@ -235,6 +244,7 @@ public sealed class ProfileBackupResult
     public required long SourceBytes { get; init; }
     public required long BackupBytes { get; init; }
     public required string Sha256 { get; init; }
+    public required ProfileBackupArchiveFormat ArchiveFormat { get; init; }
 }
 
 public sealed class ProfileRestoreOptions
@@ -243,6 +253,7 @@ public sealed class ProfileRestoreOptions
     public required string DestinationProfilePath { get; init; }
     public string? ArchivePassword { get; init; }
     public bool CreateSafetyBackup { get; init; } = true;
+    public ProfileBackupArchiveFormat SafetyBackupFormat { get; init; } = ProfileBackupArchiveFormat.Zip;
     public bool OverwriteExistingFiles { get; init; }
     public bool VerifyHashes { get; init; } = true;
     public ProfileBackupMode Mode { get; init; } = ProfileBackupMode.Complete;
@@ -273,6 +284,7 @@ public sealed class ProfileBackupManifest
     public required string ProfileName { get; init; }
     public required string OriginalProfilePath { get; init; }
     public required ProfileBackupMode Mode { get; init; }
+    public ProfileBackupArchiveFormat ArchiveFormat { get; init; } = ProfileBackupArchiveFormat.Zip;
     public required IReadOnlyList<ProfileBackupManifestEntry> Files { get; init; }
     public bool SourceWasInUse { get; init; }
 }
