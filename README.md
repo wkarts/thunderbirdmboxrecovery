@@ -128,13 +128,13 @@ Requisitos:
 - 7-Zip para gerar pacotes `.7z`.
 
 ```powershell
-pwsh ./scripts/Publish-Portable.ps1 -Version 2.2.0
+pwsh ./scripts/Publish-Portable.ps1 -Version 2.2.1
 ```
 
 Para tentar gerar uma variante UPX:
 
 ```powershell
-pwsh ./scripts/Publish-Portable.ps1 -Version 2.2.0 -EnableUpx $true
+pwsh ./scripts/Publish-Portable.ps1 -Version 2.2.1 -EnableUpx $true
 ```
 
 ## CI e releases

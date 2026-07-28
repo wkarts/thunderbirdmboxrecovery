@@ -315,15 +315,15 @@ public static class ProfileRestoreService
         {
             if (key.StartsWith("thunderbird-root/", StringComparison.OrdinalIgnoreCase))
             {
-                var relative = key[17..];
-                return (destinationDataRoot!, relative, key);
+                var dataRootRelativePath = key[17..];
+                return (destinationDataRoot!, dataRootRelativePath, key);
             }
 
             if (key.StartsWith("local-cache/", StringComparison.OrdinalIgnoreCase))
             {
                 if (!options.RestoreLocalCache || string.IsNullOrWhiteSpace(destinationLocalCache)) return null;
-                var relative = key[12..];
-                return (destinationLocalCache, relative, key);
+                var localCacheRelativePath = key[12..];
+                return (destinationLocalCache, localCacheRelativePath, key);
             }
             return null;
         }

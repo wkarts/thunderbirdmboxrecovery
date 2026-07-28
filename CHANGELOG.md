@@ -1,5 +1,14 @@
 # Changelog
 
+
+## 2.2.1
+
+- Corrige erros CS0136 causados por variáveis locais com nomes repetidos em escopos aninhados.
+- Renomeia as confirmações da restauração para `messagesConfirmation` e `criticalConfirmation`.
+- Renomeia os caminhos relativos do diretório principal e cache local para nomes sem ambiguidade.
+- Mantém a lógica funcional da restauração 2.2.0 sem refatoração abrupta.
+- Inclui relatório específico do log de validação `82217130534`.
+
 ## 2.2.0
 
 - Detecção automática de diretórios de dados tradicionais, Microsoft Store e personalizados.

@@ -401,14 +401,14 @@ public sealed class RestorePage : OperationPageBase
         var target = SelectedTargetMode;
         if (target == ProfileRestoreTargetMode.RestoreMessagesToExisting)
         {
-            var response = MessageBox.Show(
+            var messagesConfirmation = MessageBox.Show(
                 this,
                 $"As mensagens serão importadas em uma pasta separada dentro do perfil:\n{destination}\n\nNenhuma caixa atual será sobrescrita. Continuar?",
                 "Confirmar restauração de mensagens",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Information,
                 MessageBoxDefaultButton.Button1);
-            if (response != DialogResult.Yes) throw new OperationCanceledException("Restauração cancelada.");
+            if (messagesConfirmation != DialogResult.Yes) throw new OperationCanceledException("Restauração cancelada.");
             return;
         }
 
@@ -430,14 +430,14 @@ public sealed class RestorePage : OperationPageBase
         if ((target is ProfileRestoreTargetMode.ReplaceExistingProfile or ProfileRestoreTargetMode.RestoreThunderbirdDataRoot) && !_safety.Checked)
             throw new InvalidOperationException("O backup de segurança é obrigatório para esta operação.");
 
-        var response = MessageBox.Show(
+        var criticalConfirmation = MessageBox.Show(
             this,
             $"A operação substituirá dados em:\n{destination}\n\nUm backup de segurança em {SelectedSafetyFormat} será criado antes da alteração. Mesmo assim, falhas de disco ou interrupções podem causar perda de dados. Continuar?",
             "Confirmação crítica",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning,
             MessageBoxDefaultButton.Button2);
-        if (response != DialogResult.Yes) throw new OperationCanceledException("Restauração cancelada na confirmação crítica.");
+        if (criticalConfirmation != DialogResult.Yes) throw new OperationCanceledException("Restauração cancelada na confirmação crítica.");
     }
 
     private async Task RestoreAsync()
