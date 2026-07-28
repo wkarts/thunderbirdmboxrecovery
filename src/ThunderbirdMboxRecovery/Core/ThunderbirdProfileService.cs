@@ -9,9 +9,104 @@ public static class ThunderbirdProfileService
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "Thunderbird");
 
+    public static string ThunderbirdLocalCacheRoot => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Thunderbird");
+
+    public static IReadOnlyList<ThunderbirdDataRootInfo> FindDataRoots()
+    {
+        var roots = new List<ThunderbirdDataRootInfo>();
+        AddRoot(
+            roots,
+            "Thunderbird tradicional (Roaming)",
+            ThunderbirdDataRoot,
+            ThunderbirdDataRootType.TraditionalRoaming,
+            ThunderbirdLocalCacheRoot,
+            preferred: File.Exists(Path.Combine(ThunderbirdDataRoot, "profiles.ini")) || Directory.Exists(Path.Combine(ThunderbirdDataRoot, "Profiles")),
+            includeWhenMissing: true);
+
+        var packagesRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Packages");
+        if (Directory.Exists(packagesRoot))
+        {
+            foreach (var package in Directory.EnumerateDirectories(packagesRoot, "*Thunderbird*", SearchOption.TopDirectoryOnly))
+            {
+                var roamingRoot = Path.Combine(package, "LocalCache", "Roaming", "Thunderbird");
+                if (!Directory.Exists(roamingRoot) && !File.Exists(Path.Combine(roamingRoot, "profiles.ini")))
+                    continue;
+
+                AddRoot(
+                    roots,
+                    $"Thunderbird Microsoft Store ({Path.GetFileName(package) ?? "pacote"})",
+                    roamingRoot,
+                    ThunderbirdDataRootType.MicrosoftStore,
+                    Path.Combine(package, "LocalCache", "Local", "Thunderbird"),
+                    preferred: !roots.Any(root => root.IsPreferred));
+            }
+        }
+
+        return roots
+            .GroupBy(root => Path.GetFullPath(root.Path), StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .OrderByDescending(root => root.IsPreferred)
+            .ThenBy(root => root.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public static ThunderbirdDataRootInfo GetPreferredDataRoot()
+    {
+        var roots = FindDataRoots();
+        return roots.FirstOrDefault(root => root.IsPreferred)
+            ?? roots.FirstOrDefault()
+            ?? new ThunderbirdDataRootInfo
+            {
+                Name = "Thunderbird tradicional (Roaming)",
+                Path = ThunderbirdDataRoot,
+                Type = ThunderbirdDataRootType.TraditionalRoaming,
+                LocalCachePath = ThunderbirdLocalCacheRoot,
+                IsPreferred = true
+            };
+    }
+
+    public static ThunderbirdDataRootInfo CreateCustomDataRoot(string path, string? localCachePath = null)
+    {
+        var fullPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(path));
+        return new ThunderbirdDataRootInfo
+        {
+            Name = "Diretório personalizado",
+            Path = fullPath,
+            Type = ThunderbirdDataRootType.Custom,
+            LocalCachePath = string.IsNullOrWhiteSpace(localCachePath)
+                ? null
+                : Path.GetFullPath(Environment.ExpandEnvironmentVariables(localCachePath!)),
+            IsPreferred = false
+        };
+    }
+
     public static IReadOnlyList<ThunderbirdProfileInfo> FindProfiles()
     {
-        var profilesIni = Path.Combine(ThunderbirdDataRoot, "profiles.ini");
+        return FindDataRoots()
+            .SelectMany(FindProfiles)
+            .GroupBy(profile => Path.GetFullPath(profile.Path), StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .OrderByDescending(profile => profile.IsDefault)
+            .ThenBy(profile => profile.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public static IReadOnlyList<ThunderbirdProfileInfo> FindProfiles(ThunderbirdDataRootInfo dataRoot) =>
+        FindProfiles(dataRoot.Path, dataRoot.Type);
+
+    public static IReadOnlyList<ThunderbirdProfileInfo> FindProfiles(string dataRootPath) =>
+        FindProfiles(dataRootPath, ThunderbirdDataRootType.Custom);
+
+    private static IReadOnlyList<ThunderbirdProfileInfo> FindProfiles(
+        string dataRootPath,
+        ThunderbirdDataRootType dataRootType)
+    {
+        var root = Path.GetFullPath(Environment.ExpandEnvironmentVariables(dataRootPath));
+        var profilesIni = Path.Combine(root, "profiles.ini");
         var profiles = new List<ThunderbirdProfileInfo>();
 
         if (File.Exists(profilesIni))
@@ -24,40 +119,38 @@ public static class ThunderbirdProfileService
 
                 var isRelative = !section.Value.TryGetValue("IsRelative", out var relativeValue) || relativeValue != "0";
                 var path = isRelative
-                    ? Path.Combine(ThunderbirdDataRoot, configuredPath.Replace('/', Path.DirectorySeparatorChar))
-                    : configuredPath;
+                    ? Path.Combine(root, configuredPath.Replace('/', Path.DirectorySeparatorChar))
+                    : Environment.ExpandEnvironmentVariables(configuredPath);
 
-                path = Path.GetFullPath(Environment.ExpandEnvironmentVariables(path));
+                path = Path.GetFullPath(path);
                 if (!Directory.Exists(path)) continue;
 
-                profiles.Add(new ThunderbirdProfileInfo
-                {
-                    Name = section.Value.TryGetValue("Name", out var name) && !string.IsNullOrWhiteSpace(name)
+                profiles.Add(CreateProfileInfo(
+                    section.Value.TryGetValue("Name", out var name) && !string.IsNullOrWhiteSpace(name)
                         ? name
-                        : Path.GetFileName(path),
-                    Path = path,
-                    IsDefault = section.Value.TryGetValue("Default", out var defaultValue) && defaultValue == "1",
-                    IsRelative = isRelative,
-                    EstimatedBytes = EstimateDirectoryBytes(path)
-                });
+                        : Path.GetFileName(path) ?? "Perfil",
+                    path,
+                    section.Value.TryGetValue("Default", out var defaultValue) && defaultValue == "1",
+                    isRelative,
+                    root,
+                    dataRootType));
             }
         }
 
-        var profilesDirectory = Path.Combine(ThunderbirdDataRoot, "Profiles");
+        var profilesDirectory = Path.Combine(root, "Profiles");
         if (Directory.Exists(profilesDirectory))
         {
             foreach (var directory in Directory.EnumerateDirectories(profilesDirectory))
             {
                 var fullPath = Path.GetFullPath(directory);
                 if (profiles.Any(profile => profile.Path.Equals(fullPath, StringComparison.OrdinalIgnoreCase))) continue;
-                profiles.Add(new ThunderbirdProfileInfo
-                {
-                    Name = Path.GetFileName(directory),
-                    Path = fullPath,
-                    IsDefault = false,
-                    IsRelative = true,
-                    EstimatedBytes = EstimateDirectoryBytes(directory)
-                });
+                profiles.Add(CreateProfileInfo(
+                    Path.GetFileName(directory) ?? "Perfil",
+                    fullPath,
+                    false,
+                    true,
+                    root,
+                    dataRootType));
             }
         }
 
@@ -65,6 +158,55 @@ public static class ThunderbirdProfileService
             .OrderByDescending(profile => profile.IsDefault)
             .ThenBy(profile => profile.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    public static ThunderbirdDataRootInfo? FindDataRootForProfile(ThunderbirdProfileInfo profile)
+    {
+        if (!string.IsNullOrWhiteSpace(profile.DataRootPath))
+        {
+            return FindDataRoots().FirstOrDefault(root =>
+                       Path.GetFullPath(root.Path).Equals(Path.GetFullPath(profile.DataRootPath), StringComparison.OrdinalIgnoreCase))
+                   ?? CreateCustomDataRoot(profile.DataRootPath);
+        }
+
+        var profilePath = Path.GetFullPath(profile.Path);
+        return FindDataRoots().FirstOrDefault(root => IsPathInside(root.Path, profilePath));
+    }
+
+    public static string CreateNewProfileDestination(
+        ThunderbirdDataRootInfo dataRoot,
+        string? requestedName,
+        string? uniqueToken = null)
+    {
+        var safeName = SanitizeFolderName(string.IsNullOrWhiteSpace(requestedName)
+            ? $"Restaurado_{DateTime.Now:yyyyMMdd_HHmmss}"
+            : requestedName.Trim());
+        var profilesDirectory = Path.Combine(dataRoot.Path, "Profiles");
+
+        var suffix = SanitizeFolderName(string.IsNullOrWhiteSpace(uniqueToken)
+            ? Guid.NewGuid().ToString("N")[..8]
+            : uniqueToken.Trim());
+        var candidate = Path.Combine(profilesDirectory, $"{suffix}.{safeName}");
+        var number = 2;
+        while (Directory.Exists(candidate) || File.Exists(candidate))
+            candidate = Path.Combine(profilesDirectory, $"{suffix}.{safeName}-{number++:00}");
+        return candidate;
+    }
+
+    public static void EnsureProfileSkeleton(string profilePath)
+    {
+        var fullPath = Path.GetFullPath(profilePath);
+        Directory.CreateDirectory(fullPath);
+        Directory.CreateDirectory(Path.Combine(fullPath, "Mail", "Local Folders"));
+
+        var prefsPath = Path.Combine(fullPath, "prefs.js");
+        if (!File.Exists(prefsPath))
+        {
+            File.WriteAllText(
+                prefsPath,
+                "// Criado pelo Thunderbird Recovery Suite para permitir o registro seguro do perfil restaurado." + Environment.NewLine,
+                new UTF8Encoding(false));
+        }
     }
 
     public static bool IsProfileInUse(string profilePath)
@@ -102,14 +244,15 @@ public static class ThunderbirdProfileService
     public static ProfileRegistrationResult RegisterProfile(
         string profilePath,
         string profileName,
-        bool makeDefault = false)
+        bool makeDefault = false,
+        string? dataRootPath = null)
     {
         ValidateProfile(profilePath);
         if (IsThunderbirdRunning())
             throw new IOException("Feche todas as instâncias do Thunderbird antes de registrar o perfil restaurado.");
 
         var fullProfilePath = Path.GetFullPath(profilePath);
-        var root = Path.GetFullPath(ThunderbirdDataRoot);
+        var root = Path.GetFullPath(string.IsNullOrWhiteSpace(dataRootPath) ? ThunderbirdDataRoot : dataRootPath!);
         Directory.CreateDirectory(root);
         var profilesIni = Path.Combine(root, "profiles.ini");
         var sections = File.Exists(profilesIni)
@@ -131,7 +274,7 @@ public static class ThunderbirdProfileService
 
             var existingName = section.Value.TryGetValue("Name", out var configuredName) && !string.IsNullOrWhiteSpace(configuredName)
                 ? configuredName
-                : Path.GetFileName(fullProfilePath);
+                : Path.GetFileName(fullProfilePath) ?? "Perfil";
             return new ProfileRegistrationResult
             {
                 Registered = false,
@@ -206,6 +349,67 @@ public static class ThunderbirdProfileService
         };
     }
 
+    private static ThunderbirdProfileInfo CreateProfileInfo(
+        string name,
+        string path,
+        bool isDefault,
+        bool isRelative,
+        string dataRootPath,
+        ThunderbirdDataRootType dataRootType)
+    {
+        DateTimeOffset? lastWrite = null;
+        try { lastWrite = Directory.GetLastWriteTimeUtc(path); } catch { }
+        return new ThunderbirdProfileInfo
+        {
+            Name = name,
+            Path = path,
+            IsDefault = isDefault,
+            IsRelative = isRelative,
+            EstimatedBytes = EstimateDirectoryBytes(path),
+            DataRootPath = dataRootPath,
+            DataRootType = dataRootType,
+            IsInUse = IsProfileInUse(path),
+            HasMail = Directory.Exists(Path.Combine(path, "Mail")),
+            HasImapMail = Directory.Exists(Path.Combine(path, "ImapMail")),
+            LastWriteTimeUtc = lastWrite
+        };
+    }
+
+    private static void AddRoot(
+        ICollection<ThunderbirdDataRootInfo> roots,
+        string name,
+        string path,
+        ThunderbirdDataRootType type,
+        string? localCachePath,
+        bool preferred,
+        bool includeWhenMissing = false)
+    {
+        var fullPath = Path.GetFullPath(path);
+        if (!includeWhenMissing && !Directory.Exists(fullPath) && !File.Exists(Path.Combine(fullPath, "profiles.ini")))
+            return;
+        roots.Add(new ThunderbirdDataRootInfo
+        {
+            Name = name,
+            Path = fullPath,
+            Type = type,
+            LocalCachePath = string.IsNullOrWhiteSpace(localCachePath) ? null : Path.GetFullPath(localCachePath!),
+            IsPreferred = preferred
+        });
+    }
+
+    private static bool IsPathInside(string root, string candidate)
+    {
+        var normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var normalizedCandidate = Path.GetFullPath(candidate);
+        return normalizedCandidate.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string SanitizeFolderName(string value)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var sanitized = new string(value.Select(character => invalid.Contains(character) ? '_' : character).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(sanitized) ? $"Restaurado_{DateTime.Now:yyyyMMdd_HHmmss}" : sanitized;
+    }
 
     private static string CreateUniqueSiblingPath(string basePath, string suffix)
     {
@@ -270,12 +474,11 @@ public static class ThunderbirdProfileService
             foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
             {
                 try { total = checked(total + new FileInfo(file).Length); }
-                catch { /* arquivo transitório ou protegido */ }
+                catch { }
             }
         }
         catch
         {
-            // Retorna a estimativa parcial.
         }
         return total;
     }

@@ -147,6 +147,27 @@ public sealed class ThunderbirdInstallation
     public string DisplayText => $"Thunderbird {Version} ({Architecture}) — {ExecutablePath}";
 }
 
+
+public enum ThunderbirdDataRootType
+{
+    TraditionalRoaming,
+    MicrosoftStore,
+    Custom
+}
+
+public sealed class ThunderbirdDataRootInfo
+{
+    public required string Name { get; init; }
+    public required string Path { get; init; }
+    public ThunderbirdDataRootType Type { get; init; } = ThunderbirdDataRootType.Custom;
+    public string? LocalCachePath { get; init; }
+    public bool IsPreferred { get; init; }
+    public bool Exists => Directory.Exists(Path);
+    public string ProfilesIniPath => System.IO.Path.Combine(Path, "profiles.ini");
+    public string InstallsIniPath => System.IO.Path.Combine(Path, "installs.ini");
+    public string DisplayText => $"{Name}{(IsPreferred ? " [preferencial]" : string.Empty)}{(!Exists ? " [será criado]" : string.Empty)} — {Path}";
+}
+
 public sealed class ThunderbirdProfileInfo
 {
     public required string Name { get; init; }
@@ -154,8 +175,14 @@ public sealed class ThunderbirdProfileInfo
     public required bool IsDefault { get; init; }
     public required bool IsRelative { get; init; }
     public long EstimatedBytes { get; init; }
+    public string? DataRootPath { get; init; }
+    public ThunderbirdDataRootType DataRootType { get; init; } = ThunderbirdDataRootType.Custom;
+    public bool IsInUse { get; init; }
+    public bool HasMail { get; init; }
+    public bool HasImapMail { get; init; }
+    public DateTimeOffset? LastWriteTimeUtc { get; init; }
 
-    public string DisplayText => $"{Name}{(IsDefault ? " [padrão]" : string.Empty)} — {Path}";
+    public string DisplayText => $"{Name}{(IsDefault ? " [padrão]" : string.Empty)}{(IsInUse ? " [em uso]" : string.Empty)} — {Path}";
 }
 
 
@@ -206,6 +233,21 @@ public enum ProfileBackupMode
     Selective
 }
 
+public enum ProfileBackupScope
+{
+    SelectedProfile,
+    ThunderbirdDataRoot
+}
+
+public enum ProfileRestoreTargetMode
+{
+    CreateNewProfile,
+    ReplaceExistingProfile,
+    RestoreMessagesToExisting,
+    RestoreThunderbirdDataRoot,
+    ManualFolder
+}
+
 public enum ProfileBackupArchiveFormat
 {
     Zip,
@@ -228,12 +270,15 @@ public sealed class ProfileBackupSelection
 public sealed class ProfileBackupOptions
 {
     public required ThunderbirdProfileInfo Profile { get; init; }
+    public ThunderbirdDataRootInfo? DataRoot { get; init; }
+    public ProfileBackupScope Scope { get; init; } = ProfileBackupScope.SelectedProfile;
     public required string DestinationArchivePath { get; init; }
     public ProfileBackupArchiveFormat ArchiveFormat { get; init; } = ProfileBackupArchiveFormat.Zip;
     public ProfileBackupMode Mode { get; init; } = ProfileBackupMode.Complete;
     public ProfileBackupSelection Selection { get; init; } = new();
     public bool CalculateFileHashes { get; init; } = true;
     public bool AllowInUseProfile { get; init; }
+    public bool IncludeLocalCache { get; init; }
 }
 
 public sealed class ProfileBackupResult
@@ -251,7 +296,10 @@ public sealed class ProfileRestoreOptions
 {
     public required string BackupPath { get; init; }
     public required string DestinationProfilePath { get; init; }
+    public string? DestinationDataRootPath { get; init; }
+    public string? DestinationLocalCachePath { get; init; }
     public string? ArchivePassword { get; init; }
+    public ProfileRestoreTargetMode TargetMode { get; init; } = ProfileRestoreTargetMode.CreateNewProfile;
     public bool CreateSafetyBackup { get; init; } = true;
     public ProfileBackupArchiveFormat SafetyBackupFormat { get; init; } = ProfileBackupArchiveFormat.Zip;
     public bool OverwriteExistingFiles { get; init; }
@@ -261,11 +309,14 @@ public sealed class ProfileRestoreOptions
     public bool RegisterProfile { get; init; }
     public string? RegisteredProfileName { get; init; }
     public bool MakeRegisteredProfileDefault { get; init; }
+    public string? MessagesSubfolderName { get; init; }
+    public bool RestoreLocalCache { get; init; }
 }
 
 public sealed class ProfileRestoreResult
 {
     public required string DestinationProfilePath { get; init; }
+    public string? DestinationDataRootPath { get; init; }
     public required string? SafetyBackupPath { get; init; }
     public required long RestoredFiles { get; init; }
     public required long RestoredBytes { get; init; }
@@ -284,9 +335,25 @@ public sealed class ProfileBackupManifest
     public required string ProfileName { get; init; }
     public required string OriginalProfilePath { get; init; }
     public required ProfileBackupMode Mode { get; init; }
+    public ProfileBackupScope Scope { get; init; } = ProfileBackupScope.SelectedProfile;
     public ProfileBackupArchiveFormat ArchiveFormat { get; init; } = ProfileBackupArchiveFormat.Zip;
     public required IReadOnlyList<ProfileBackupManifestEntry> Files { get; init; }
     public bool SourceWasInUse { get; init; }
+    public string? OriginalDataRootPath { get; init; }
+    public ThunderbirdDataRootType? DataRootType { get; init; }
+    public string? OriginalLocalCachePath { get; init; }
+    public bool IncludedLocalCache { get; init; }
+    public IReadOnlyList<string> ProfileRelativePaths { get; init; } = Array.Empty<string>();
+}
+
+public sealed class ProfileBackupInspection
+{
+    public required string BackupPath { get; init; }
+    public required bool IsSuiteBackup { get; init; }
+    public required ProfileBackupScope Scope { get; init; }
+    public ProfileBackupManifest? Manifest { get; init; }
+    public required IReadOnlyList<string> ProfileRelativePaths { get; init; }
+    public required IReadOnlyList<string> Warnings { get; init; }
 }
 
 public sealed class ProfileBackupManifestEntry

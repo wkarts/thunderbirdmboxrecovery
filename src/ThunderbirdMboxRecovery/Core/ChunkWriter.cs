@@ -129,7 +129,7 @@ internal sealed class ChunkWriter : IDisposable
 
         _parts.Add(new ChunkManifest
         {
-            FileName = Path.GetFileName(_finalPath),
+            FileName = Path.GetFileName(_finalPath) ?? _finalPath,
             SizeBytes = _size,
             EstimatedMessages = _messages,
             Sha256 = hash

@@ -4,7 +4,7 @@ chcp 65001 >nul
 
 set "ROOT=%~dp0"
 set "VERSION=%~1"
-if "%VERSION%"=="" set "VERSION=2.1.0"
+if "%VERSION%"=="" set "VERSION=2.2.1"
 
 where pwsh >nul 2>nul
 if errorlevel 1 (

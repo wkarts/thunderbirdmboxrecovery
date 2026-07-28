@@ -1,60 +1,65 @@
-# Operação técnica — Thunderbird Recovery Suite 2.1
+# Operação técnica — Thunderbird Recovery Suite 2.2
 
-## Regra principal
-
-Nunca trabalhe sobre a única cópia de um perfil ou MBOX. Preserve o arquivo original e use uma unidade NTFS com espaço suficiente para origem, saída e backup de segurança.
-
-## Explorar e extrair EML
-
-1. Abra a aba **Explorar**.
-2. Selecione qualquer arquivo MBOX do Thunderbird, inclusive sem extensão.
-3. Clique em **Listar mensagens do MBOX**.
-4. Selecione uma ou mais linhas para extrair emails específicos.
-5. Use **Extrair selecionada(s) para EML** ou **Extrair todas para EML**.
-6. A extração gera arquivos `.eml` e um índice CSV.
-
-A aba **Extrair EML** permanece disponível para filtros por assunto, remetente, destinatário, período, anexo e status de exclusão.
-
-## Reparar
-
-- Arquivo único é o padrão.
-- Fracionamento é opcional.
-- A origem é aberta somente para leitura.
-- O reparo pode normalizar status Mozilla e recuperar mensagens excluídas ainda presentes.
-- Não é criado `.msf` artificial.
-
-## Indexar
-
-A aba **Indexar MSF** cria um perfil temporário e usa o Thunderbird instalado para construir o índice real. Em caixas grandes, a operação pode demorar e a pasta pode permanecer ocupada durante a indexação.
-
-## Backup ZIP ou 7Z
-
-1. Feche o Thunderbird.
-2. Selecione o perfil.
-3. Escolha completo, somente mensagens ou seletivo.
-4. Escolha ZIP ou 7Z.
-5. Crie o backup.
-
-ZIP é mais compatível. 7Z/LZMA2 normalmente reduz mais o tamanho.
-
-## Restaurar sobre perfil existente
-
-A restauração é uma mesclagem. Com sobrescrita habilitada, arquivos com o mesmo caminho podem ser substituídos. Isso pode alterar mensagens, preferências, índices, catálogos, credenciais e extensões. Arquivos que não existam no backup não são excluídos automaticamente.
-
-Para continuar sobre um perfil que já contém dados:
+## Backup recomendado
 
 1. Feche completamente o Thunderbird.
-2. Marque a confirmação de compreensão do risco.
-3. Digite `RESTAURAR`.
-4. Confirme o alerta crítico.
-5. Mantenha o backup de segurança habilitado, preferencialmente em 7Z para reduzir espaço ou ZIP para máxima compatibilidade.
-6. Quando o backup estiver desabilitado, confirme novamente a operação irreversível.
+2. Abra o módulo **Backup**.
+3. Selecione **Thunderbird completo** para preservar todos os perfis armazenados na raiz, `profiles.ini` e `installs.ini`.
+4. Confirme o diretório detectado em Roaming.
+5. Mantenha **Incluir AppData Local** desmarcado, salvo necessidade de preservar caches.
+6. Escolha 7Z para menor tamanho ou ZIP para compatibilidade.
+7. Guarde também o arquivo `.sha256`.
+8. Caso a tela indique perfil absoluto fora da raiz Roaming, faça também um backup individual desse perfil.
 
-## Pacotes de distribuição
+## Restaurar criando um novo perfil
 
-- `win-x64`: recomendado para Windows moderno.
-- `win-x86`: somente para Windows 32 bits.
-- executável sem sufixo: portátil e self-contained.
-- `runtime-required`: menor, mas exige .NET 8 Desktop Runtime da arquitetura correta.
-- ZIP e 7Z: versões compactadas para transporte.
-- UPX: opção experimental e desativada por padrão.
+1. Selecione o backup de um perfil.
+2. Mantenha **Criar um novo perfil**.
+3. Escolha a raiz de dados detectada.
+4. Informe o nome do perfil.
+5. Confira o caminho calculado.
+6. Execute a restauração.
+7. O perfil será registrado automaticamente sem alterar o perfil atual.
+
+## Substituir um perfil
+
+1. Feche o Thunderbird.
+2. Selecione **Substituir um perfil existente**.
+3. Escolha explicitamente o perfil.
+4. Confirme o formato do backup de segurança.
+5. Marque a ciência do risco.
+6. Digite `SUBSTITUIR PERFIL`.
+7. Confirme a operação crítica.
+
+## Restaurar somente mensagens
+
+1. Selecione **Restaurar somente mensagens em um perfil existente**.
+2. Escolha o perfil de destino.
+3. Informe o nome da pasta de importação.
+4. As caixas serão colocadas em `Mail\Local Folders\<nome>.sbd`.
+5. Inbox, Sent e demais caixas atuais não serão sobrescritas.
+
+## Restaurar Thunderbird completo
+
+1. Use apenas um backup identificado como `ThunderbirdDataRoot`.
+2. Feche o Thunderbird.
+3. Escolha o diretório de dados detectado.
+4. Mantenha o backup de segurança obrigatório.
+5. Digite `SUBSTITUIR THUNDERBIRD`.
+6. Restaure o cache local somente quando realmente necessário.
+
+## Observação sobre AppData Local
+
+Na instalação tradicional, `%LOCALAPPDATA%\Thunderbird` contém principalmente caches. Os dados essenciais ficam em `%APPDATA%\Thunderbird`. Na versão Microsoft Store, a área Roaming virtualizada fica dentro de `%LOCALAPPDATA%\Packages\...\LocalCache\Roaming\Thunderbird` e é tratada como diretório principal.
+
+## Regras adicionais da restauração 2.2
+
+- A raiz de dados é escolhida automaticamente de acordo com o tipo registrado no manifesto, quando disponível.
+- O caminho sugerido para um novo perfil é exclusivo e permanece estável enquanto o operador altera o nome.
+- Um novo perfil restaurado recebe uma estrutura mínima válida antes de ser registrado no `profiles.ini`.
+- Substituições em destinos que já contêm dados exigem backup de segurança e autorização de sobrescrita também no núcleo da aplicação.
+- A importação de mensagens em perfil existente ignora `.msf`, bancos SQLite e arquivos de controle como `popstate.dat` e `msgFilterRules.dat`; o Thunderbird reconstrói os índices necessários.
+
+### Troca transacional do destino
+
+Ao substituir um perfil ou a raiz completa, a suíte não extrai diretamente sobre os dados em uso. A extração e a validação ocorrem em um diretório irmão de estágio. Somente após o processamento integral o diretório original é movido temporariamente e o estágio assume o caminho definitivo. Se alguma troca falhar, os diretórios já alterados são revertidos na ordem inversa.

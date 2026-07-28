@@ -211,7 +211,7 @@ public static class MboxExtractor
                 _extracted++;
                 _extractedBytes += fileInfo.Length;
                 _files.Add(_finalPath);
-                WriteCsv(_currentInfo!, Path.GetFileName(_finalPath), fileInfo.Length);
+                WriteCsv(_currentInfo!, Path.GetFileName(_finalPath) ?? _finalPath, fileInfo.Length);
             }
 
             _output?.Dispose();
@@ -273,8 +273,8 @@ public static class MboxExtractor
                 return path;
 
             var directory = Path.GetDirectoryName(path)!;
-            var name = Path.GetFileNameWithoutExtension(path);
-            var extension = Path.GetExtension(path);
+            var name = Path.GetFileNameWithoutExtension(path) ?? "mensagem";
+            var extension = Path.GetExtension(path) ?? string.Empty;
             var suffix = 2;
             string candidate;
             do

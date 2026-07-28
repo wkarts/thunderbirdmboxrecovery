@@ -19,7 +19,7 @@ public static class ProfileFileClassifier
         if (string.IsNullOrWhiteSpace(relative)) return false;
 
         var first = relative.Split('/')[0];
-        var fileName = Path.GetFileName(relative);
+        var fileName = Path.GetFileName(relative) ?? string.Empty;
 
         if (TransientNames.Contains(fileName) || fileName.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
             return false;

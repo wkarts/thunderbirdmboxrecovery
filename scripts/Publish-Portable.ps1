@@ -5,7 +5,7 @@ param(
 
     [Parameter()]
     [ValidatePattern('^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$')]
-    [string] $Version = "2.1.0",
+    [string] $Version = "2.2.1",
 
     [Parameter()]
     [bool] $GenerateFrameworkDependent = $true,

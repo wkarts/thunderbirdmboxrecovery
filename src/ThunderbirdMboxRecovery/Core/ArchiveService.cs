@@ -18,7 +18,7 @@ public static class ArchiveService
 
     public static bool IsArchive(string path)
     {
-        var extension = Path.GetExtension(path);
+        var extension = Path.GetExtension(path) ?? string.Empty;
         return extension.Equals(".7z", StringComparison.OrdinalIgnoreCase)
             || extension.Equals(".zip", StringComparison.OrdinalIgnoreCase)
             || extension.Equals(".rar", StringComparison.OrdinalIgnoreCase)
@@ -82,7 +82,7 @@ public static class ArchiveService
         if (size <= 0) return false;
         var fileName = Path.GetFileName(key.Replace('/', Path.DirectorySeparatorChar));
         if (string.IsNullOrWhiteSpace(fileName)) return false;
-        var extension = Path.GetExtension(fileName);
+        var extension = Path.GetExtension(fileName) ?? string.Empty;
         if (ExcludedExtensions.Contains(extension)) return false;
         if (extension.Equals(".mbox", StringComparison.OrdinalIgnoreCase)) return true;
         return string.IsNullOrEmpty(extension) || PreferredNames.Contains(fileName) || size >= 16L * 1024 * 1024;
@@ -90,7 +90,7 @@ public static class ArchiveService
 
     private static bool IsPreferredName(string key)
     {
-        var fileName = Path.GetFileName(key.Replace('/', Path.DirectorySeparatorChar));
+        var fileName = Path.GetFileName(key.Replace('/', Path.DirectorySeparatorChar)) ?? string.Empty;
         return PreferredNames.Contains(fileName);
     }
 
