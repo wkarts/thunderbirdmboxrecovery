@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
 
 namespace ThunderbirdMboxRecovery.Core;
@@ -48,7 +49,7 @@ public sealed class RecoveryManifest
     public string Application { get; init; } = "Thunderbird MBOX Recovery";
 
     [JsonPropertyName("versao")]
-    public string Version { get; init; } = "1.2.0";
+    public string Version { get; init; } = ApplicationVersion.Current;
 
     [JsonPropertyName("criado_em")]
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.Now;
@@ -106,6 +107,29 @@ public sealed class ChunkManifest
 
     [JsonPropertyName("arquivo_indice_msf")]
     public string? IndexFileName { get; init; }
+}
+
+public static class ApplicationVersion
+{
+    public static string Current { get; } = Resolve();
+
+    private static string Resolve()
+    {
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+
+        if (!string.IsNullOrWhiteSpace(informationalVersion))
+        {
+            var metadataSeparator = informationalVersion.IndexOf('+');
+            return metadataSeparator > 0
+                ? informationalVersion[..metadataSeparator]
+                : informationalVersion;
+        }
+
+        return assembly.GetName().Version?.ToString(3) ?? "1.3.0";
+    }
 }
 
 public static class SizeFormatter

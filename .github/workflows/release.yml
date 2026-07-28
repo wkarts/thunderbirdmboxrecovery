@@ -1,16 +1,12 @@
-name: Release
+name: Versioned Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main, master]
+  workflow_dispatch:
 
 permissions:
   contents: write
-
-concurrency:
-  group: stable-release-${{ github.ref_name }}
-  cancel-in-progress: false
 
 jobs:
   release:
@@ -19,24 +15,90 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
 
+      - name: Define immutable version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          [xml] $project = Get-Content "src/ThunderbirdMboxRecovery/ThunderbirdMboxRecovery.csproj"
+          $baseVersionNode = $project.SelectSingleNode("/Project/PropertyGroup/Version")
+
+          if ($null -eq $baseVersionNode) {
+            throw "A versão base não foi encontrada no arquivo .csproj."
+          }
+
+          $baseVersion = $baseVersionNode.InnerText.Trim()
+          $segments = $baseVersion.Split('.')
+          if ($segments.Count -lt 2) {
+            throw "A versão base '$baseVersion' não possui major e minor válidos."
+          }
+
+          $version = "$($segments[0]).$($segments[1]).$env:GITHUB_RUN_NUMBER"
+          $tag = "v$version"
+
+          "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "TAG_NAME=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          Write-Host "Versão desta execução: $version"
+          Write-Host "Tag desta execução: $tag"
+
+      - name: Ensure version does not already exist
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          git fetch --tags --force
+
+          $existingTag = git tag --list $env:TAG_NAME
+          if (-not [string]::IsNullOrWhiteSpace($existingTag)) {
+            throw "A tag imutável $env:TAG_NAME já existe. A execução não sobrescreverá uma release anterior."
+          }
+
+          gh release view $env:TAG_NAME --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            throw "A release imutável $env:TAG_NAME já existe. A execução não substituirá seus arquivos."
+          }
+
+          $global:LASTEXITCODE = 0
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Build portable win-x86 and win-x64
         shell: pwsh
-        run: ./scripts/Publish-Portable.ps1 -OutputDirectory release
+        run: |
+          ./scripts/Publish-Portable.ps1 `
+            -OutputDirectory release `
+            -Version $env:APP_VERSION
 
-      - name: Publish stable GitHub Release
+      - name: Publish new immutable GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = "Stop"
-          $tag = $env:GITHUB_REF_NAME
-          $title = "Thunderbird MBOX Recovery $tag"
+          $title = "Thunderbird MBOX Recovery v$env:APP_VERSION"
+          $notes = @"
+          Nova versão automática e imutável do Thunderbird MBOX Recovery.
+
+          Versão: $env:APP_VERSION
+          Tag: $env:TAG_NAME
+          Branch: $env:GITHUB_REF_NAME
+          Commit: $env:GITHUB_SHA
+          Execução: $env:GITHUB_RUN_NUMBER
+
+          Arquiteturas incluídas:
+          - Windows x86
+          - Windows x64
+
+          Esta release não reutiliza tags, não apaga versões anteriores e não substitui assets existentes.
+          Confira o arquivo SHA256SUMS.txt antes de executar os binários.
+          "@
 
           $assets = Get-ChildItem release -File |
             Where-Object { $_.Name -match '\.(exe|zip|txt)$' } |
@@ -47,36 +109,15 @@ jobs:
             throw "Nenhum arquivo foi encontrado para publicação."
           }
 
-          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
-          $releaseExists = $LASTEXITCODE -eq 0
+          $createArgs = @("release", "create", $env:TAG_NAME) + $assets + @(
+            "--repo", $env:GITHUB_REPOSITORY,
+            "--target", $env:GITHUB_SHA,
+            "--title", $title,
+            "--notes", $notes,
+            "--latest"
+          )
 
-          if ($releaseExists) {
-            $uploadArgs = @("release", "upload", $tag) + $assets + @(
-              "--clobber",
-              "--repo", $env:GITHUB_REPOSITORY
-            )
-            & gh @uploadArgs
-            if ($LASTEXITCODE -ne 0) {
-              throw "Falha ao atualizar os arquivos da release $tag."
-            }
-
-            gh release edit $tag `
-              --repo $env:GITHUB_REPOSITORY `
-              --title $title `
-              --latest
-            if ($LASTEXITCODE -ne 0) {
-              throw "Falha ao atualizar a release $tag."
-            }
-          }
-          else {
-            $createArgs = @("release", "create", $tag) + $assets + @(
-              "--repo", $env:GITHUB_REPOSITORY,
-              "--title", $title,
-              "--generate-notes",
-              "--latest"
-            )
-            & gh @createArgs
-            if ($LASTEXITCODE -ne 0) {
-              throw "Falha ao criar a release $tag."
-            }
+          & gh @createArgs
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao criar a nova release imutável $env:TAG_NAME."
           }

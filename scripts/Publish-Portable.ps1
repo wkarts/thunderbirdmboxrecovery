@@ -1,7 +1,11 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [string] $OutputDirectory = "release"
+    [string] $OutputDirectory = "release",
+
+    [Parameter()]
+    [ValidatePattern('^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$')]
+    [string] $Version = "1.3.0"
 )
 
 Set-StrictMode -Version Latest
@@ -25,10 +29,18 @@ if (Test-Path $outputRoot) {
 }
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
 
+$numericVersion = ($Version -split '-', 2)[0]
+$fileVersion = "$numericVersion.0"
+$informationalVersion = if ([string]::IsNullOrWhiteSpace($env:GITHUB_SHA)) {
+    $Version
+} else {
+    "$Version+$($env:GITHUB_SHA.Substring(0, [Math]::Min(12, $env:GITHUB_SHA.Length)))"
+}
+
 $runtimes = @("win-x86", "win-x64")
 
 foreach ($runtime in $runtimes) {
-    Write-Host "::group::Publicando $runtime"
+    Write-Host "::group::Publicando $runtime - versão $Version"
 
     $runtimeOutput = Join-Path $outputRoot $runtime
     New-Item -ItemType Directory -Path $runtimeOutput -Force | Out-Null
@@ -45,13 +57,16 @@ foreach ($runtime in $runtimes) {
         --no-restore `
         -p:PublishSingleFile=true `
         -p:PublishTrimmed=false `
+        -p:Version=$Version `
+        -p:FileVersion=$fileVersion `
+        -p:InformationalVersion=$informationalVersion `
         -o $runtimeOutput
     if ($LASTEXITCODE -ne 0) {
         throw "Falha no publish para $runtime."
     }
 
     $publishedExecutable = Join-Path $runtimeOutput "ThunderbirdMboxRecovery.exe"
-    $portableName = "ThunderbirdMboxRecovery-$runtime.exe"
+    $portableName = "ThunderbirdMboxRecovery-v$Version-$runtime.exe"
     $portableExecutable = Join-Path $runtimeOutput $portableName
 
     if (-not (Test-Path $publishedExecutable -PathType Leaf)) {
@@ -65,12 +80,13 @@ foreach ($runtime in $runtimes) {
         throw "Executável $portableName possui tamanho inesperado: $($executableInfo.Length) bytes."
     }
 
-    $hashFileName = "SHA256-$runtime.txt"
+    $hashFileName = "SHA256-v$Version-$runtime.txt"
     $hashFile = Join-Path $runtimeOutput $hashFileName
     $hash = (Get-FileHash $portableExecutable -Algorithm SHA256).Hash.ToLowerInvariant()
     "$hash *$portableName" | Set-Content $hashFile -Encoding ascii
 
-    $zipPath = Join-Path $outputRoot "ThunderbirdMboxRecovery-$runtime.zip"
+    $zipName = "ThunderbirdMboxRecovery-v$Version-$runtime.zip"
+    $zipPath = Join-Path $outputRoot $zipName
     Compress-Archive `
         -Path $portableExecutable, $hashFile, $readmePath, $operationGuidePath `
         -DestinationPath $zipPath `
@@ -84,6 +100,9 @@ foreach ($runtime in $runtimes) {
     Write-Host "::endgroup::"
 }
 
+$versionPath = Join-Path $outputRoot "VERSION.txt"
+$Version | Set-Content $versionPath -Encoding ascii
+
 $checksumFiles = Get-ChildItem $outputRoot -File |
     Where-Object { $_.Extension -in @(".exe", ".zip") } |
     Sort-Object Name
@@ -96,7 +115,7 @@ $checksumLines = foreach ($file in $checksumFiles) {
 $checksumsPath = Join-Path $outputRoot "SHA256SUMS.txt"
 $checksumLines | Set-Content $checksumsPath -Encoding ascii
 
-Write-Host "Arquivos finais:"
+Write-Host "Arquivos finais da versão $Version:"
 Get-ChildItem $outputRoot -File | Sort-Object Name | ForEach-Object {
     Write-Host ("- {0} ({1:N2} MiB)" -f $_.Name, ($_.Length / 1MB))
 }
