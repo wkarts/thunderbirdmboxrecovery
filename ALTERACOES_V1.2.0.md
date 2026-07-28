@@ -1,4 +1,4 @@
-> **Histórico:** este documento descreve o comportamento da versão 1.2.0. Na linha 1.3, a criação de `.msf` vazio foi removida e o índice passou a ser reconstruído pelo próprio Thunderbird.
+> **Histórico:** este documento descreve a versão 1.2.0. A criação de `.msf` vazio foi removida na versão 1.4.0 por não produzir um índice válido.
 
 # Alterações da versão 1.2.0
 

@@ -8,7 +8,7 @@ where dotnet >nul 2>nul || (
 )
 
 set "VERSION=%~1"
-if "%VERSION%"=="" set "VERSION=1.3.0"
+if "%VERSION%"=="" set "VERSION=1.4.0"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Publish-Portable.ps1" ^
     -OutputDirectory artifacts ^

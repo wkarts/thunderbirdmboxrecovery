@@ -4,7 +4,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThunderbirdMboxRecovery", "src\ThunderbirdMboxRecovery\ThunderbirdMboxRecovery.csproj", "{8A98D067-C2D2-43A0-A06B-4DAF516C3E77}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThunderbirdMboxRecovery.SmokeTests", "tests\ThunderbirdMboxRecovery.SmokeTests\ThunderbirdMboxRecovery.SmokeTests.csproj", "{B981F4D4-B77A-4CD7-9E2A-8E92E1201A13}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThunderbirdMboxRecovery.SmokeTests", "tests\ThunderbirdMboxRecovery.SmokeTests\ThunderbirdMboxRecovery.SmokeTests.csproj", "{4D884F8B-7B37-4F69-B5AE-2B71A3F54B14}"
 EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,9 +16,9 @@ Global
         {8A98D067-C2D2-43A0-A06B-4DAF516C3E77}.Debug|Any CPU.Build.0 = Debug|Any CPU
         {8A98D067-C2D2-43A0-A06B-4DAF516C3E77}.Release|Any CPU.ActiveCfg = Release|Any CPU
         {8A98D067-C2D2-43A0-A06B-4DAF516C3E77}.Release|Any CPU.Build.0 = Release|Any CPU
-        {B981F4D4-B77A-4CD7-9E2A-8E92E1201A13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        {B981F4D4-B77A-4CD7-9E2A-8E92E1201A13}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        {B981F4D4-B77A-4CD7-9E2A-8E92E1201A13}.Release|Any CPU.ActiveCfg = Release|Any CPU
-        {B981F4D4-B77A-4CD7-9E2A-8E92E1201A13}.Release|Any CPU.Build.0 = Release|Any CPU
+        {4D884F8B-7B37-4F69-B5AE-2B71A3F54B14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {4D884F8B-7B37-4F69-B5AE-2B71A3F54B14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {4D884F8B-7B37-4F69-B5AE-2B71A3F54B14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {4D884F8B-7B37-4F69-B5AE-2B71A3F54B14}.Release|Any CPU.Build.0 = Release|Any CPU
     EndGlobalSection
 EndGlobal
