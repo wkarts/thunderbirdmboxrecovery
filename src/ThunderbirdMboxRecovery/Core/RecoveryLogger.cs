@@ -11,9 +11,10 @@ public sealed class RecoveryLogger : IDisposable
     public string LogPath { get; }
     public event Action<string>? LineWritten;
 
-    public RecoveryLogger(string outputDirectory)
+    public RecoveryLogger(string outputDirectory, string fileName = "recuperacao.log")
     {
-        LogPath = Path.Combine(outputDirectory, "recuperacao.log");
+        Directory.CreateDirectory(outputDirectory);
+        LogPath = Path.Combine(outputDirectory, fileName);
         _writer = new StreamWriter(
             new FileStream(LogPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 64 * 1024, FileOptions.SequentialScan),
             new UTF8Encoding(false))

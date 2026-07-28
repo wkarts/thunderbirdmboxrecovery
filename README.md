@@ -1,77 +1,153 @@
-# Thunderbird MBOX Recovery
+# Thunderbird Recovery Suite 2.0
 
-Utilitário portátil para diagnóstico, reparo estrutural e recuperação de arquivos MBOX do Mozilla Thunderbird.
+Aplicação portátil para Windows que reúne diagnóstico, exploração, reparo, extração, indexação assistida, backup e restauração de caixas e perfis do Mozilla Thunderbird.
 
-## O que a versão 1.4.0 corrige
+A suíte trabalha sem alterar a origem: arquivos MBOX são abertos somente para leitura, as saídas são criadas em diretórios separados e operações críticas utilizam arquivos temporários antes da confirmação final.
 
-A aplicação não apenas copia ou divide o arquivo. Durante a reconstrução ela:
+## Recursos integrados
 
-- identifica mensagens pelos separadores MBOX;
-- aceita `Inbox`, `Sent`, `Drafts`, `Archives`, `Trash` e caixas personalizadas, com ou sem extensão;
-- processa arquivos diretos ou entradas de backups `.7z`, `.zip`, `.rar`, `.tar`, `.gz`, `.bz2` e `.xz`;
-- normaliza `X-Mozilla-Status` e `X-Mozilla-Status2`;
-- remove das mensagens recuperadas as marcações internas de expurgada e excluída no IMAP;
-- insere cabeçalhos internos ausentes quando necessário;
-- corrige blocos de cabeçalho sem terminador antes da próxima mensagem;
-- mantém corpos e anexos em fluxo, sem carregar a caixa inteira na memória;
-- gera um único MBOX por padrão ou permite fracionamento opcional;
-- gera manifesto JSON, hashes SHA-256 e log técnico.
+### Visão geral
 
-## Sobre o arquivo `.msf`
+- Detecta instalações do Thunderbird nos registros, `Program Files` e `LocalAppData`.
+- Identifica versão e arquitetura `x86`, `x64` ou `ARM64` do executável PE.
+- Localiza perfis pelo `profiles.ini` e pela pasta `Profiles`.
+- Exibe tamanho estimado dos perfis e identifica o perfil marcado como padrão.
 
-A versão anterior criava um `.msf` vazio. Esse comportamento foi removido.
+### Explorar e testar
 
-O `.msf` é o banco de resumo interno do Thunderbird. Um arquivo vazio não é um índice válido e pode causar reconstruções inconsistentes. A aplicação entrega somente o MBOX reparado; o Thunderbird deve gerar um `.msf` válido ao abrir a caixa.
+- Abre MBOX direto, com ou sem extensão, ou uma entrada MBOX dentro de `.7z`, `.zip`, `.rar`, `.tar`, `.gz`, `.bz2` e `.xz`.
+- Processa o conteúdo em fluxo, sem carregar integralmente caixas com dezenas de gigabytes.
+- Lista assunto, remetente, destinatário, data, `Message-ID`, offsets, tamanho, flags Mozilla, exclusão e indicação de anexo.
+- Calcula SHA-256 da origem.
+- Detecta separadores inválidos, prefixo não reconhecido, `Message-ID` duplicado, cabeçalho sem terminador e status Mozilla malformado.
+- Exporta inventário e diagnóstico em JSON e CSV.
 
-## Importação correta
+### Reparar
 
-1. Desative temporariamente a pesquisa/indexação global do Thunderbird.
-2. Feche completamente o Thunderbird.
-3. Confirme no Gerenciador de Tarefas que `thunderbird.exe` não está em execução.
-4. Copie somente o MBOX recuperado para:
+- Reconstrói o MBOX em uma saída nova.
+- Saída única é o padrão; fracionamento é opcional e ocorre somente entre mensagens completas.
+- Normaliza `X-Mozilla-Status` e `X-Mozilla-Status2`.
+- Pode remover `Expunged` e `IMAPDeleted`, recuperando mensagens que ainda permanecem fisicamente no arquivo.
+- Preserva flags independentes, como lida, respondida, encaminhada e marcada.
+- Gera manifesto, hashes SHA-256, instruções de importação e log técnico.
+- Não fabrica `.msf` vazio ou incompatível.
 
-```text
-Mail\Local Folders\
+### Extrair EML
+
+- Extrai mensagens individuais para `.eml`.
+- Filtra por assunto, remetente, destinatário, período, presença de anexo e estado de exclusão.
+- Permite preservar ou remover cabeçalhos internos Mozilla.
+- Gera índice CSV dos itens exportados.
+
+### Indexar com o Thunderbird real
+
+- Usa uma instalação real do Thunderbird encontrada no computador.
+- Cria um perfil temporário e isolado.
+- Copia o MBOX para `Mail/Local Folders`.
+- Inicia uma instância separada com `-profile`, `-new-instance` e `-no-remote`.
+- Tenta selecionar a pasta por Windows UI Automation; se a automação não conseguir, solicita apenas a seleção manual da pasta na janela isolada.
+- Mantém `mail.panorama.enabled=false` no perfil temporário para solicitar a geração tradicional de `.msf` quando essa preferência for reconhecida pela versão instalada.
+- Monitora tamanho, data de gravação e estabilidade do índice.
+- Valida assinatura Mork e tenta comparar `numMsgs` com a contagem estrutural do MBOX.
+- Quando houver divergência estável de contagem, aguarda um período adicional antes de concluir com aviso.
+- Mantém detecção de `panorama.sqlite` como compatibilidade prospectiva quando a instalação ignorar ou substituir o fluxo Mork.
+- Entrega o par MBOX/`.msf` realmente produzido pelo Thunderbird, ou preserva o banco Panorama quando não existir um `.msf` autônomo.
+
+### Backup de perfil
+
+- Modos completo, somente mensagens ou seletivo.
+- Seleção de `Mail`, `ImapMail/News`, preferências, catálogos, calendários, credenciais/certificados, extensões, índices e caches.
+- Bloqueia por padrão backup de perfil em uso; existe uma substituição explícita para atendimento emergencial, registrada no manifesto.
+- ZIP gravado inicialmente como `.partial` e confirmado somente após conclusão.
+- Manifesto interno com caminho, tamanho, data e SHA-256 por arquivo.
+- SHA-256 do pacote e arquivo `.sha256` lateral.
+
+### Restaurar perfil
+
+- Restaura ZIPs da suíte e arquivos compatíveis com SharpCompress: `.7z`, `.zip`, `.rar`, `.tar`, `.gz`, `.bz2` e `.xz`.
+- Suporta restauração completa, somente mensagens ou seletiva.
+- Aceita senha para arquivos compactados protegidos.
+- Reconhece perfil na raiz, em `profile/` ou dentro de uma pasta superior única.
+- Bloqueia caminhos absolutos e travessia de diretórios.
+- Restaura por arquivos temporários e valida SHA-256 quando existe manifesto.
+- Pode criar backup de segurança do destino.
+- Pode registrar o perfil restaurado no `profiles.ini`, mantendo cópia de segurança do arquivo anterior.
+- Pode marcar o perfil como padrão no `profiles.ini`; isso não altera configurações externas específicas de instalação que eventualmente existam em `installs.ini`.
+
+## Formatos e tecnologias
+
+- Mensagens: MBOX/Berkeley e arquivos sem extensão do Thunderbird.
+- Compactação para leitura: 7z, ZIP, RAR, TAR, GZip, BZip2 e XZ.
+- Backup nativo: ZIP.
+- Índice tradicional: `.msf`/Mork criado pelo Thunderbird instalado.
+- Compatibilidade prospectiva: detecção de `panorama.sqlite`.
+- Runtime: .NET 8 Windows Desktop.
+- Interface: Windows Forms e Windows UI Automation.
+- Distribuição: executáveis self-contained, single-file, separados para `win-x86` e `win-x64`.
+
+## Segurança operacional
+
+1. Preserve o backup original e trabalhe em uma cópia.
+2. Feche o Thunderbird antes de substituir caixas, restaurar perfis ou registrar um perfil.
+3. Não compacte uma caixa suspeita antes de concluir a recuperação.
+4. Valide hashes e manifestos antes de substituir dados de produção.
+5. Teste o resultado em perfil isolado.
+6. Em backup de perfil aberto, use a substituição emergencial somente quando não for possível interromper o Thunderbird e registre essa condição no atendimento.
+
+## Compilação local
+
+Requisitos:
+
+- Windows 10/11 ou Windows Server compatível.
+- SDK .NET 8 x64.
+- PowerShell 7 recomendado.
+
+```powershell
+pwsh ./scripts/Test-PowerShellSyntax.ps1
+
+dotnet restore ThunderbirdMboxRecovery.sln `
+  -p:SelfContained=false `
+  -p:PublishSingleFile=false
+
+dotnet build ThunderbirdMboxRecovery.sln `
+  -c Release `
+  --no-restore `
+  -p:SelfContained=false `
+  -p:PublishSingleFile=false `
+  -warnaserror
+
+dotnet run `
+  --project tests/ThunderbirdMboxRecovery.SmokeTests/ThunderbirdMboxRecovery.SmokeTests.csproj `
+  -c Release `
+  --no-build
+
+pwsh ./scripts/Publish-Portable.ps1 -Version 2.0.0
 ```
 
-5. Não coloque a caixa recuperada na pasta da conta POP/IMAP e não use `ImapMail`.
-6. Exclua qualquer `.msf` antigo com o mesmo nome.
-7. Abra o Thunderbird e aguarde a criação do novo `.msf`.
-8. Não use **Reparar pasta** enquanto o Thunderbird informar que outra operação está usando a pasta.
+## GitHub Actions e releases
 
-## Saída
+- Pull Request: valida sintaxe PowerShell, SDK .NET 8, build com warnings como erro, smoke tests e publicação temporária `win-x86`/`win-x64` dentro do runner.
+- Merge em `main` ou `master`: cria tag e release novas no padrão `v2.0.<GITHUB_RUN_NUMBER>`.
+- Releases são imutáveis: não há tag `continuous`, movimentação de tag ou `--clobber`.
+- A publicação envia os binários diretamente para GitHub Releases, sem depender de `actions/upload-artifact`.
 
-Sem fracionamento:
-
-```text
-Inbox_Recuperada
-manifesto_recuperacao.json
-recuperacao.log
-COMO_IMPORTAR_NO_THUNDERBIRD.txt
-```
-
-Com fracionamento:
+Arquivos esperados:
 
 ```text
-Inbox_Recuperada_001
-Inbox_Recuperada_002
-Inbox_Recuperada_003
+ThunderbirdRecoverySuite-v2.0.123-win-x86.exe
+ThunderbirdRecoverySuite-v2.0.123-win-x64.exe
+ThunderbirdRecoverySuite-v2.0.123-win-x86.zip
+ThunderbirdRecoverySuite-v2.0.123-win-x64.zip
+SHA256SUMS.txt
+VERSION.txt
 ```
 
-## Builds
+## Limitações conhecidas
 
-As releases incluem executáveis portáteis e autossuficientes para:
-
-- `win-x64`;
-- `win-x86`.
-
-Cada build bem-sucedido da branch principal cria uma nova tag e uma nova release imutável. Versões anteriores não são apagadas nem sobrescritas.
-
-## Limitações
-
-A ferramenta não recria bytes fisicamente ausentes, sobrescritos ou truncados. Mensagens com danos graves no conteúdo MIME podem aparecer parcialmente, mesmo quando o contêiner MBOX é reconstruído.
-
-
-## Build normal e publicação portátil
-
-A solução é compilada normalmente como framework-dependent para permitir os smoke tests. Os executáveis entregues ao cliente continuam autossuficientes: `SelfContained=true` e `PublishSingleFile=true` são aplicados exclusivamente durante o publish `win-x86` e `win-x64`.
+- Bytes fisicamente truncados, sobrescritos ou ausentes não podem ser recriados.
+- A detecção de anexos se baseia em cabeçalhos MIME e pode ser incompleta em mensagens severamente danificadas.
+- A contagem `numMsgs` do Mork é uma validação auxiliar; o manifesto preserva também a contagem estrutural do MBOX.
+- A automação de interface depende da árvore de acessibilidade exposta pela versão, idioma e tema do Thunderbird; existe fallback de seleção manual.
+- Panorama continua em evolução. A suíte prioriza `.msf` no perfil isolado e preserva `panorama.sqlite` quando a instalação operar de forma diferente.
+- A criação do índice exige uma instalação funcional do Thunderbird e pode levar horas em caixas muito grandes.
+- Marcar `Default=1` no `profiles.ini` não garante substituir associações específicas já registradas em `installs.ini` por determinadas instalações do Thunderbird.

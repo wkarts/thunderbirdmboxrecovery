@@ -59,7 +59,7 @@ public sealed partial class MboxSplitter
                     options.SourcePath,
                     FileMode.Open,
                     FileAccess.Read,
-                    FileShare.Read,
+                    FileShare.ReadWrite | FileShare.Delete,
                     ReadBufferSize,
                     FileOptions.SequentialScan);
                 input = directStream;

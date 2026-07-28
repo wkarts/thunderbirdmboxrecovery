@@ -168,7 +168,7 @@ internal sealed class MessageRepairWriter : IDisposable
             return;
         }
 
-        if (_normalizeMozillaStatusHeaders &&
+        if ((_normalizeMozillaStatusHeaders || _recoverDeletedMessages) &&
             StartsWithAsciiIgnoreCase(content, "X-Mozilla-Status:"u8))
         {
             _sawMozillaStatus = true;
@@ -203,7 +203,7 @@ internal sealed class MessageRepairWriter : IDisposable
             return;
         }
 
-        if (_normalizeMozillaStatusHeaders &&
+        if ((_normalizeMozillaStatusHeaders || _recoverDeletedMessages) &&
             StartsWithAsciiIgnoreCase(content, "X-Mozilla-Status2:"u8))
         {
             _sawMozillaStatus2 = true;
